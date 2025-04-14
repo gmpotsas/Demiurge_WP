@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Ensure proper scaling on mobile devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Progress Pics - Demiurge</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <style>
+      body {    
+          background-color: black;
+          color: white;
+          text-align: center;
+      }
+      .btn-custom {
+          background-color: white;
+          color: black;
+          padding: 10px 20px;
+          font-size: 18px;
+          text-decoration: none;
+          border-radius: 5px;
+          transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+          margin: 5px;
+      }
+      .btn-custom:hover {
+          background-color: gray;
+          color: white;
+      }
+      .custom-header {
+          text-align: center;
+          padding: 20px 0;
+          background: black;
+          width: 100%;
+      }
+      .top-title h1 {
+          color: white;
+          font-size: 36px;
+          font-weight: bold;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          text-shadow: 0px 4px 10px rgba(255, 255, 255, 0.2);
+          transition: text-shadow 0.3s ease-in-out;
+          margin-bottom: 20px;
+      }
+      .top-title h1:hover {
+          text-shadow: 0px 6px 15px rgba(255, 204, 0, 1);
+      }
+      /* Container for segments */
+      .segments-container {
+          display: flex;
+          justify-content: space-around;
+          align-items: flex-start;
+          padding: 10px;
+          flex-wrap: wrap;
+          margin-top: 120px;
+          margin-bottom:500px;
+      }
+      .segment {
+          width: 45%;
+          margin: 10px;
+          padding: 30px;
+          background-color: rgba(255, 255, 255, 0.15);
+          border-radius: 30px;
+          box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+          text-align: left;
+          transition: transform 0.3s ease-in-out;
+      }
+      .segment1 {
+      width: 45%;
+      height: 1000px;       /* Fixed height to ensure photos fit */
+      overflow: hidden;    /* Hide overflow if the image exceeds boundaries */
+      margin: 10px;
+      padding: 30px;
+      background-color: rgba(255, 255, 255, 0.15);
+      border-radius: 30px;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+      text-align: left;
+      transition: transform 0.3s ease-in-out;
+  }
+
+  .carousel-inner img {
+      width: 100%;           /* Full width */
+      height: 100%;          /* Full height */
+      object-fit: contain;   /* Ensures proper scaling without cropping */
+  }
+
+  /* Optional: Adjust carousel-item to ensure uniform slide heights */
+  .carousel-item {
+      height: 100%;
+  }
+      .segment:hover {
+          transform: scale(1.08);
+      } .segment1:hover {
+          transform: scale(1.08);
+      }
+      /* Loading overlay styles */
+      #loadingOverlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: #000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          opacity: 1;
+          transition: opacity 3s ease;
+      }
+      .spinner {
+          border: 5px solid #444;
+          border-top: 5px solid #fff;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+      }
+      /* Offcanvas & progress bar styling (identical to logs.html) */
+      .offcanvas {
+          background: linear-gradient(135deg, #1e1e1e, #2c2c2c);
+          color: #e0e0e0;
+          border: none;
+          border-radius: 0;
+          box-shadow: -4px 0 15px rgba(0, 0, 0, 0.8);
+          transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+      }
+      .offcanvas-header {
+          background: transparent;
+          padding-bottom: 10px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .offcanvas-header h5 {
+          margin: 0;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+      }
+      .offcanvas .btn-close {
+          filter: invert(1);
+          background: none;
+          border: none;
+          opacity: 0.75;
+          transition: opacity 0.2s ease-in-out;
+      }
+      .offcanvas .btn-close:hover {
+          opacity: 1;
+      }
+      .offcanvas-body {
+          padding-top: 0.5rem;
+          font-size: 0.95rem;
+      }
+      .offcanvas .form-select,
+      .offcanvas .form-control {
+          background-color: #333;
+          color: #e0e0e0;
+          border: 1px solid #444;
+          border-radius: 4px;
+      }
+      .offcanvas .form-select:focus,
+      .offcanvas .form-control:focus {
+          background-color: #333;
+          color: #e0e0e0;
+          border-color: #555;
+          box-shadow: none;
+      }
+      .offcanvas h6,
+      .offcanvas label {
+          color: #e0e0e0;
+          font-weight: 500;
+      }
+      .offcanvas .btn-primary {
+          background-color: #0d6efd;
+          border: none;
+          border-radius: 4px;
+          padding: 0.4rem 1rem;
+      }
+      .offcanvas .btn-secondary {
+          background-color: #555;
+          border: none;
+          border-radius: 4px;
+          padding: 0.4rem 1rem;
+      }
+      .offcanvas .btn-primary:hover,
+      .offcanvas .btn-secondary:hover {
+          opacity: 0.9;
+      }
+      .offcanvas .progress {
+          height: 22px;
+          background-color: #444;
+          border-radius: 4px;
+          overflow: hidden;
+          margin-bottom: 1rem;
+      }
+      .offcanvas .progress-bar {
+          font-size: 0.85rem;
+          line-height: 22px;
+          font-weight: 500;
+      }
+      .offcanvas hr {
+          border-color: rgba(255, 255, 255, 0.1);
+      }
+      .offcanvas .mb-3 {
+          margin-bottom: 1rem;
+      }
+      @media (max-width: 576px) {
+        #statsOffcanvas {
+          width: 80% !important;  
+          max-width: 320px;       
+        }
+      }
+      .offcanvas .progress-bar.bg-success {
+          background-color: #26a69a;
+          transition: width 1.5s ease-out;
+      }
+      .nav-item0:hover{
+  transform: scale(1.04);
+}
+.nav-item1:hover{
+  transform: scale(1.04);
+}.nav-item2:hover{
+  transform: scale(1.04);
+}.nav-item3:hover{
+  transform: scale(1.04);
+}.nav-item4:hover{
+  transform: scale(1.04);
+}
+/* Custom fade-in animation */
+.fade-in {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@media (max-width: 576px) {
+  .segments-container {
+    gap: 30px;  /* Adds a 20px gap between stacked segments */
+  }
+}
+
+  </style>
+</head>
+<body>
+  <!-- Loading overlay -->
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Header (shared across pages) -->
+  <header class="custom-header">
+    <div class="container grid-container">
+      <div class="left-spacer"></div>
+      <div class="top-title text-center">
+        <h1 class="fw-bold">Demiurge</h1>
+      </div>
+      <nav class="navbar navbar-expand-lg navbar-dark justify-content-end">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" 
+                data-bs-target="#headerNavbar" aria-controls="headerNavbar" 
+                aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse justify-content-end" id="headerNavbar">
+          <ul class="navbar-nav">
+            <li class="nav-item0">
+              <a class="nav-link" href="#" onclick="redirectLogs()">Home</a>
+            </li>
+            <li class="nav-item1">
+              <a class="nav-link" href="#" onclick="redirectLockers()">Lockers</a>
+            </li>
+            <li class="nav-item2">
+              <a class="nav-link" href="#" onclick="showStatsOffcanvas()">Goals & Stats</a>
+            </li>
+            <li class="nav-item3">
+              <a class="nav-link" href="#" onclick="redirectTutorials()">Tutorials</a>
+            </li>
+            <li class="nav-item4">
+              <a class="nav-link" href="#" onclick="redirectProgressPics()">Progress Pics</a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content with two segments side by side -->
+  <div class="main-content">
+    <div class="container segments-container">
+      <!-- Left Segment: Upload Progress Photo Panel -->
+      <div class="segment" id="uploadPanel">
+        <h2 class="mb-4">Upload Progress Photo</h2>
+        <form id="progressPicForm">
+          <div class="mb-3">
+            <label for="viewSelect" class="form-label">Choose View:</label>
+            <select id="viewSelect" class="form-select" required>
+              <option value="" disabled selected>Select view</option>
+              <option value="front">Front</option>
+              <option value="rear">Rear</option>
+              <option value="side">Side</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="progressPhoto" class="form-label">Select Photo:</label>
+            <input type="file" id="progressPhoto" class="form-control" accept="image/*" required>
+          </div>
+          <button type="submit" class="btn btn-outline-light btn-md save-butt">Upload Photo</button>
+          
+        </form>
+      </div>
+
+      <!-- Right Segment: Progress Photos Carousel -->
+      <div class="segment1" id="carouselPanel">
+        <h2 class="mb-4">Your Progress Photos</h2>
+        <div id="progressCarousel" class="carousel slide" data-bs-ride="carousel">
+          <div class="carousel-inner" id="carouselInner">
+            <!-- Default placeholder slide -->
+            <div class="carousel-item active">
+              <img src="https://via.placeholder.com/800x400?text=No+Photos+Yet" class="d-block w-100" alt="Placeholder">
+              <div class="carousel-caption d-none d-md-block">
+                <h5>No Progress Photos Uploaded</h5>
+              </div>
+            </div>
+          </div>
+          <button class="carousel-control-prev" type="button" data-bs-target="#progressCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#progressCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer (shared across pages) -->
+  <footer class="footer mt-5 py-5" style="background-color: black; color: white;">
+      <div class="container">
+          <div class="row text-center text-md-start">
+              <div class="col-md-4 mb-4">
+                  <h5 class="fw-bold text-uppercase">About Me</h5>
+                  <p style="color: #bbb;">I'm a certified fitness coach dedicated to helping you reach your best self through tailored workout plans and guidance.</p>
+              </div>
+              <div class="col-md-4 mb-4">
+                  <h5 class="fw-bold text-uppercase">Services</h5>
+                  <ul class="list-unstyled" style="color: #bbb;">
+                      <li>✔ Custom Workout Plans</li>
+                      <li>✔ Nutrition Guidance</li>
+                      <li>✔ 1-on-1 Coaching</li>
+                      <li><button type="button" class="btn btn-custom" onclick="redirectToDashboard()">Go to Dashboard</button></li>
+                  </ul>
+              </div>
+              <div class="col-md-4 mb-4">
+                  <h5 class="fw-bold text-uppercase">Contact</h5>
+                  <p style="color: #bbb;">info@fitnesscoaching.com</p>
+                  <p style="color: #bbb;">+123 456 7890</p>
+                  <div>
+                      <a href="#" class="social-icon"><i class="bi bi-facebook"></i></a>
+                      <a href="#" class="social-icon"><i class="bi bi-instagram"></i></a>
+                      <a href="#" class="social-icon"><i class="bi bi-twitter"></i></a>
+                  </div>
+              </div>
+          </div>
+          <hr class="bg-light my-4">
+          <p class="text-center small" style="color: #bbb;">&copy; 2025 Fitness Coaching. All rights reserved.</p>
+      </div>
+  </footer>
+
+  <!-- Offcanvas for Stats -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="statsOffcanvas" aria-labelledby="statsOffcanvasLabel">
+      <div class="offcanvas-header">
+          <h8 class="offcanvas-title" id="statsOffcanvasLabel">Goals & Stats.</h8>
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body">
+          <form id="goalForm">
+              <h6>Set Your Workout and Bodyweight Goals</h6>
+              <div class="mb-3">
+                  <label for="exerciseGoal" class="form-label">Exercise Goal</label>
+                  <select class="form-select" id="exerciseGoal" disabled>
+                      <option value="" selected disabled>Select Exercise</option>
+                      <option value="bench_press">Bench Press</option>
+                      <option value="squat">Squat</option>
+                      <option value="deadlift">Deadlift</option>
+                      <option value="overhead_press">Overhead Press</option>
+                      <option value="bicep_curl">Bicep Curl</option>
+                      <option value="triceps_extension">Triceps Extension</option>
+                      <option value="leg_press">Leg Press</option>
+                      <option value="lat_pull_down">Lat Pulldown</option>
+                      <option value="shoulder_press">Shoulder Press</option>
+                      <option value="barbell_row">Barbell Row</option>
+                  </select>
+              </div>
+              <div class="mb-3">
+                  <label for="weightGoal" class="form-label">Target Weight (Kg)</label>
+                  <input type="number" class="form-control" id="weightGoal" placeholder="Enter target weight" disabled>
+              </div>
+              <div class="mb-3">
+                  <label for="repsGoal" class="form-label">Target Reps</label>
+                  <input type="number" class="form-control" id="repsGoal" placeholder="Enter target reps" disabled>
+              </div>
+              <div class="mb-3">
+                  <label for="bodyweightGoal" class="form-label">Desired Bodyweight (Kg)</label>
+                  <input type="number" class="form-control" id="bodyweightGoal" placeholder="Enter desired bodyweight" disabled>
+              </div>
+              <div class="d-flex justify-content-end">
+                  <button type="button" id="editGoalsBtn" class="btn btn-secondary btn-sm me-2" onclick="enableGoals()">Edit Goals</button>
+                  <button type="submit" class="btn btn-primary btn-sm"  id="saveGoalsBtn">Save Goals</button>
+              </div>
+          </form>
+          <hr>
+          <div id="progressBars">
+              <h5>You are more than your statistics</h5>
+              <h8>Review your bodyweight and strength progression</h8>
+              <div class="mb-3">
+                  <label class="form-label">Exercise Progress (Bench Press)</label>
+                  <div class="progress">
+                      <div class="progress-bar bg-info" role="progressbar" style="width: 50%;" 
+                           aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">50%</div>
+                  </div>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label">Bodyweight Progress</label>
+                  <div class="progress">
+                      <div class="progress-bar bg-success" role="progressbar" style="width: 30%;" 
+                           aria-valuenow="30" aria-valuemin="0" aria-valuemax="100">30%</div>
+                  </div>
+              </div>
+              <div class="mb-3">
+                  <canvas id="bodyweightChart"></canvas>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <!-- Bootstrap Bundle (includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="application/javascript" src="jsfiles/stats.js"></script>
+  <script type="application/javascript" src="jsfiles/progresspics.js"></script>
+  
+  <script>
+      function redirectLockers() {
+        location.replace('lockers.html');
+      }
+      function redirectTutorials() {
+        location.href = 'tutorials.html';
+      }
+      function redirectProgressPics() {
+        location.href = 'progresspics.html';
+      }
+      function redirectLogs() {
+        location.href = 'logs.html';
+      }
+      function redirectToDashboard() {
+        location.href = 'dashboard.html';
+      }
+  </script>
+</body>
+</html>

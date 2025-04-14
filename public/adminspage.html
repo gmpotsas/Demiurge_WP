@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demiurge</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #000; /* Keeping the background black */
+            color: #e0e0e0;
+            text-align: center;
+        }
+
+        .custom-header {
+            text-align: center;
+            padding: 30px 0;
+            background: black;
+        }
+        .top-title h1 {
+            color: white;
+            font-size: 36px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0px 4px 10px rgba(255, 255, 255, 0.2);
+        }
+        .form-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80vh; /* Adjusted for better centering */
+        }
+
+        .form-wrapper {
+            background-color: #222; /* Dark form background for contrast */
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 25px rgba(0, 0, 0, 0.4); /* Soft shadow for depth */
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .form-title {
+            margin-bottom: 30px;
+            color: #fff;
+            font-size: 30px;
+            font-weight: 700;
+        }
+
+        .form-label {
+            color: #ccc; /* Subtle color for labels */
+            font-weight: 600;
+        }
+
+        .form-control {
+            background-color: #333; /* Dark input fields */
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            background-color: #444;
+            border-color: #00a3ff;
+            box-shadow: 0 0 8px rgba(0, 163, 255, 0.7); /* Focus effect */
+        }
+
+        .btn-custom {
+            background-color: #444; /* Darker, more serious color */
+            color: #fff;
+            padding: 12px 25px;
+            font-size: 18px;
+            border-radius: 30px;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+
+        .btn-custom:hover {
+            background-color: #333; /* Slightly darker shade on hover */
+            transform: translateY(-2px); /* Hover effect */
+        }
+
+        .btn-custom:active {
+            background-color: #222; /* Even darker on press */
+            transform: translateY(1px); /* Press effect */
+        }
+
+        footer {
+            background-color: #000;
+            color: #bbb;
+            padding: 30px 0;
+        }
+
+        footer .small {
+            color: #aaa;
+        }
+
+        .form-wrapper input::placeholder {
+            color: #888; /* Light placeholder text */
+        }
+        .custom-modal {
+            background-color: #1c1c1c;
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0px 4px 15px rgba(255, 255, 255, 0.2);
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<header class="custom-header">
+    <div class="top-title">
+        <h1 class="fw-bold">Demiurge</h1>
+    </div>
+</header>
+
+<div class="form-container">
+    <div class="form-wrapper">
+        <h2 class="form-title">Locker Information</h2>
+        <form>
+            <div class="mb-3">
+                <label for="name" class="form-label">Name</label>
+                <input type="text" class="form-control" id="name" placeholder="Enter your name">
+            </div>
+            <div class="mb-3">
+                <label for="surname" class="form-label">Surname</label>
+                <input type="text" class="form-control" id="surname" placeholder="Enter your surname">
+            </div>
+            <div class="mb-3">
+                <label for="lockerNumber" class="form-label">Locker Number</label>
+                <input type="number" class="form-control" id="lockerNumber" placeholder="Enter your locker number">
+            </div>
+            <button type="button" class="btn btn-custom" onclick="SubmitUserData()">Submit</button>
+        </form>
+    </div>
+</div>
+
+<!--Hidden modal-->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content custom-modal">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="successModalLabel">This locker is Occupied</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Please Select Another Locker.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <hr class="bg-light my-4" style="border-color: #444;">
+    <p class="text-center small">&copy; 2025 Fitness Coaching. All rights reserved.</p>
+</footer>
+
+<script type="application/javascript" src="jsfiles/adminsubmit.js"></script> 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

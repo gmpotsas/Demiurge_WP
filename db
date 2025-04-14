@@ -1,0 +1,135 @@
+CREATE DATABASE Demiurge;
+USE Demiurge;
+
+-- Users table
+CREATE TABLE Users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    surname VARCHAR(50) NOT NULL
+);
+
+-- Lockers table (One-to-One relationship with Users)
+CREATE TABLE Lockers (
+    locker_id INT PRIMARY KEY, -- User chooses locker number
+    user_id INT UNIQUE,        -- One user per locker
+    locker_password CHAR(3) NOT NULL,
+    in_use BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
+
+-- Logs table (One-to-Many relationship with Users)
+CREATE TABLE WorkoutPlans (
+    workoutplan_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,           -- ID of the user this plan is for
+    routine VARCHAR(50) NOT NULL,     -- E.g., "Push Pull Legs"
+    day VARCHAR(20) NOT NULL,         -- E.g., "Push"
+    plan_json JSON,                   -- JSON representation of the table (headers and rows)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE UserProgress (
+    userprogress_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,          -- Assuming this relates to a user in your Lockers table
+    routine VARCHAR(50) NOT NULL,     -- E.g., "Push Pull Legs"
+    day VARCHAR(20) NOT NULL,   
+    bodyweight FLOAT,      -- E.g., "Push"
+    plan_json JSON,                   -- JSON representation of the table (headers and rows)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    rest BOOLEAN,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE UserGoals (
+  goal_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  exercise_goal VARCHAR(255) NOT NULL,
+  target_weight DECIMAL(5,2) DEFAULT NULL,
+  target_reps INT DEFAULT NULL,
+  desired_bodyweight DECIMAL(5,2) DEFAULT NULL,
+  goal_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_user
+    FOREIGN KEY (user_id)
+    REFERENCES Users(user_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE UserBodyweightAverages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  week_start_date DATE NOT NULL,
+  week_end_date DATE NOT NULL,
+  average_bodyweight DECIMAL(5,2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_user1
+    FOREIGN KEY (user_id)
+    REFERENCES Users(user_id)
+    ON DELETE CASCADE
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS tutorial_videos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  exercise VARCHAR(50) NOT NULL UNIQUE,
+  videoUrl VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE progress_photos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  view VARCHAR(10) NOT NULL,
+  photo_path VARCHAR(255) NOT NULL,
+  upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+   FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
+
+npm install express multer mysql2 -- dependency for saving videourls in database.
+
+--Stored procedure so every time a user is created he gets assigned a locker of his choosing and a 3digit-password
+DELIMITER $$
+
+CREATE PROCEDURE AddUserWithChosenLocker(
+    IN p_name VARCHAR(50),
+    IN p_surname VARCHAR(50),
+    IN p_locker_id INT
+)
+BEGIN
+    DECLARE new_user_id INT;
+    DECLARE locker_exists INT;
+    DECLARE random_password CHAR(3);
+
+    -- Generate a random 3-digit password (between 100 and 999)
+    SET random_password = LPAD(FLOOR(RAND() * 900 + 100), 3, '0');
+
+    -- Check if the locker ID is already taken
+    SELECT COUNT(*) INTO locker_exists FROM Lockers WHERE locker_id = p_locker_id;
+
+    IF locker_exists = 0 THEN
+        -- Insert user into Users table
+        INSERT INTO Users (name, surname) VALUES (p_name, p_surname);
+        SET new_user_id = LAST_INSERT_ID();
+
+        -- Assign chosen locker to user and store the random password in the lockers table
+        INSERT INTO Lockers (locker_id, user_id, in_use, locker_password)
+        VALUES (p_locker_id, new_user_id, TRUE, random_password);
+    ELSE
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Locker ID already taken. Choose another.';
+    END IF;
+    
+END $$
+
+DELIMITER ;
+
+
+
+--Call the stored procedure to create users with respective lockers.
+CALL AddUserWithChosenLocker('David', 'Miller', 101);
+
+
+
+

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Locker Selection</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .locker-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 15px;
+      max-width: 600px;
+      margin-top: 80px;
+      margin-bottom:150px;
+      
+    }
+    .locker {
+      width: 110px;
+      height: 180px;
+      background-color: #000;
+      border: 2px solid #ffffff;
+      border-radius: 5px;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.2s ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      font-size: 20px;
+      font-weight: bold;
+      color: white;
+      overflow: hidden;
+    }
+    .locker::before, .locker::after {
+      content: "";
+      position: absolute;
+      left: 10%;
+      width: 80%;
+      height: 5px;
+      background-color: white;
+    }
+    .locker::before {
+      top: 15px;
+    }
+    .locker::after {
+      top: 30px;
+    }
+    .locker:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
+    }
+    /* Locker overlay styles */
+    .locker-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+    .locker:hover .locker-overlay {
+      opacity: 1;
+    }
+    .locker-overlay img {
+      width: 30px;
+      height: 30px;
+    }
+    .locker-overlay div {
+      margin-top: 5px;
+      font-size: 12px;
+      text-align: center;
+      padding: 0 5px;
+    }
+    .custom-header {
+      text-align: center;
+      padding: 20px 0;
+      background: black;
+      width: 100%;
+    }
+    .top-title h1 {
+      color: white;
+      font-size: 36px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0px 4px 10px rgba(255, 255, 255, 0.2);
+      transition: text-shadow 0.3s ease-in-out;
+      margin-bottom: 20px;
+    }
+    .top-title h1:hover {
+      text-shadow: 0px 6px 15px rgba(255, 204, 0, 1);
+    }
+    footer.footer {
+      width: 100%;
+    }
+    /* Make the modal content a bit darker */
+    .modal-content {
+      background-color: #1a1a1a;
+    }
+    /* Responsive Locker Grid */
+@media (max-width: 1200px) {
+  .locker-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .locker-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .locker-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .locker-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .locker {
+    width: 60px;
+    height: 100px;
+  }
+}
+@media (max-width: 480px) {
+  .modal-dialog {
+    margin: 10px;
+  }
+  .modal-content {
+    width: 100%;
+  }
+}
+#loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;  /* Same as page background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 3s ease;
+}
+.spinner {
+  border: 5px solid #444;
+  border-top: 5px solid #fff;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+  </style>
+</head>
+<body>
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+  </div>
+  <header class="custom-header">
+    <div class="top-title">
+      <h1 class="fw-bold">Demiurge</h1>
+    </div>
+  </header>
+
+  <div class="locker-grid">
+  </div>
+
+  <!-- Modal for entering credentials -->
+  <div class="modal fade modal" id="credentialModal" tabindex="-1" aria-labelledby="credentialModalLabel" aria-hidden="true" >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-dark text-white" style="border-radius: 30px;">
+        <div class="modal-header border-0">
+          <h5 class="modal-title" id="credentialModalLabel">Enter Credentials</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="credentialForm">
+            <div class="mb-3">
+              <label for="userId" class="form-label">User ID</label>
+              <input type="text" class="form-control" id="userId" required>
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">3-Digit Password</label>
+              <input type="password" class="form-control" id="password" pattern="\d{3}" maxlength="3" required>
+            </div>
+            <input type="hidden" id="selectedLocker" value="">
+            <!-- Changed button class to btn-secondary for a gray color -->
+            <button type="submit" class="btn btn-secondary w-100">Submit</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-success text-white">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Login Successful</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p>Redirecting you to your locker...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Error Modal -->
+  <div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-danger text-white">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Login Failed</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p>Incorrect User ID or Password. Please try again.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer mt-5 py-5" style="background-color: black; color: white;">
+    <div class="container">
+      <div class="row text-center text-md-start">
+        <div class="col-md-4 mb-4">
+          <h5 class="fw-bold text-uppercase">About Me</h5>
+          <p style="color: #bbb;">I'm a certified fitness coach dedicated to helping you reach your best self through tailored workout plans and guidance.</p>
+        </div>
+        <div class="col-md-4 mb-4">
+          <h5 class="fw-bold text-uppercase">Services</h5>
+          <ul class="list-unstyled" style="color: #bbb;">
+            <li>✔ Custom Workout Plans</li>
+            <li>✔ Nutrition Guidance</li>
+            <li>✔ 1-on-1 Coaching</li>
+          </ul>
+        </div>
+        <div class="col-md-4 mb-4">
+          <h5 class="fw-bold text-uppercase">Contact</h5>
+          <p style="color: #bbb;">info@fitnesscoaching.com</p>
+          <p style="color: #bbb;">+123 456 7890</p>
+          <div>
+            <a href="#" class="social-icon"><i class="bi bi-facebook"></i></a>
+            <a href="#" class="social-icon"><i class="bi bi-instagram"></i></a>
+            <a href="#" class="social-icon"><i class="bi bi-twitter"></i></a>
+          </div>
+        </div>
+      </div>
+      <hr class="bg-light my-4">
+      <p class="text-center small" style="color: #bbb;">&copy; 2025 Fitness Coaching. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- External JavaScript file (locker.js) is placed here -->
+  <script src="jsfiles/locker.js"></script>
+</body>
+</html>

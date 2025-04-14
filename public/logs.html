@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Ensure proper scaling on mobile devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Logs - Demiurge</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <style>
+      body {    
+          background-color: black;
+          color: white;
+          text-align: center;
+      }
+      .btn-custom {
+          background-color: white;
+          color: black;
+          padding: 10px 20px;
+          font-size: 18px;
+          text-decoration: none;
+          border-radius: 5px;
+          transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+          margin: 5px;
+      }
+      .btn-custom:hover {
+          background-color: gray;
+          color: white;
+      }
+      .custom-header {
+          text-align: center;
+          padding: 20px 0;
+          background: black;
+          width: 100%;
+      }
+      .top-title h1 {
+          color: white;
+          font-size: 36px;
+          font-weight: bold;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          text-shadow: 0px 4px 10px rgba(255, 255, 255, 0.2);
+          transition: text-shadow 0.3s ease-in-out;
+          margin-bottom: 20px;
+      }
+      .top-title h1:hover {
+          text-shadow: 0px 6px 15px rgba(255, 204, 0, 1);
+      }
+      /* Container for segments */
+      .segments-container {
+          display: flex;
+          justify-content: space-around;
+          align-items: flex-start;
+          padding:5px;
+          flex-wrap: wrap;
+          margin-top: 60px;
+          margin-bottom: 210px;
+      }
+      .segment {
+          width: 40%;
+          margin: 10px;
+          padding: 25px;
+          background-color: rgba(255, 255, 255, 0.15);
+          border-radius: 30px;
+          box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+          text-align: left;
+          transition: transform 0.3s ease-in-out;
+      }
+      
+      .segment:hover {
+          transform: scale(1.08);
+      }
+      .form-group {
+          margin-bottom: 15px;
+      }
+      .form-group label {
+          display: block;
+          margin-bottom: 5px;
+      }
+      .form-control {
+          background-color: white;
+          color: black;
+          border: 1px solid gray;
+      }
+      .form-control:focus {
+          border-color: white;
+          box-shadow: 0px 0px 8px rgba(255, 255, 255, 0.5);
+          outline: none;
+      }
+      /* Scrollable wrapper for both Coach and User tables */
+      .scrollable-table-wrapper {
+          overflow: auto;
+          max-height: 300px;
+          margin-top: 15px;
+      }
+      /* Coach Table Styling (matching the user table styles) */
+      #coachTable {
+          width: 100%;
+          border-collapse: collapse;
+          border-radius: 20px; /* Adjust the value as desired */
+          overflow: hidden;    /* Makes sure child elements do not overflow the rounded corners */
+          border-collapse: separate;
+      }
+      #coachTable th,
+      #coachTable td {
+          width: 150px;
+          min-width: 200px;
+          max-width: 150px;
+          text-align: center;
+          vertical-align: middle;
+          border: 0;
+          padding: 8px;
+      }
+      /* Coach table input styling update */
+      #coachTable input {
+          background-color: #444;  /* Brighter dark grey */
+          color: #fff;
+          font-weight: bold;
+          border: none;
+          width: 100%;
+          text-align: center;
+          border-radius: 6px;  /* New: smoother rectangular edges */
+      }
+      #UserTable {
+          width: 100%;
+          border-collapse: collapse;
+          border-radius: 40px; /* Adjust the value as desired */
+          overflow: hidden;    /* Makes sure child elements do not overflow the rounded corners */
+          border-collapse: separate;
+      }
+      #UserTable th,
+      #UserTable td {
+          width: 150px;
+          min-width: 200px;
+          max-width: 150px;
+          text-align: center;
+          vertical-align: middle;
+          border: 0;
+          padding: 8px;
+      }
+      /* Coach table input styling update */
+      #UserTable input {
+          background-color: #444;  /* Brighter dark grey */
+          color: #fff;
+          font-weight: bold;
+          border: none;
+          width: 100%;
+          text-align: center;
+          border-radius: 4px;  /* New: smoother rectangular edges */
+      }
+      /* Small plus/minus buttons */
+      .small-btn {
+          font-size: 12px;
+          padding: 0 4px;
+          margin-left: 5px;
+          color: white;
+      }
+      /* GNOME-Style Panels and Calendar */
+      .segment.row {
+          display: flex;
+          flex-wrap: nowrap;
+          min-height: 500px;
+      }
+      .gnome-panel {
+          background-color: rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 10px;
+          color: #f1f1f1;
+      }
+      #gnomeNotifications .gnome-panel {
+          background-color: transparent;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+      }
+      .notifications {
+          background-color: #2c2c2c;
+          border-radius: 6px;
+          padding: 10px;
+          margin-bottom: 16px;
+      }
+      .notification-item {
+          background-color: #3a3a3a;
+          border-radius: 6px;
+          padding: 8px;
+          margin-bottom: 8px;
+      }
+      .notification-title {
+          font-weight: bold;
+          font-size: 0.9rem;
+      }
+      .notification-subtitle {
+          font-size: 0.8rem;
+          color: #ccc;
+          margin-top: 4px;
+      }
+      #gnomeCalendarPanel .gnome-panel {
+          background-color: transparent;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+      }
+      .calendar-header {
+          margin-bottom: 8px;
+          text-align: left;
+      }
+      .calendar-day-label {
+          font-size: 1rem;
+          font-weight: bold;
+      }
+      .calendar-date-label {
+          font-size: 0.9rem;
+          color: #bbb;
+      }
+      .calendar-body {
+          background-color: #2c2c2c;
+          border-radius: 20px;
+          padding: 20px;
+          margin-bottom: 5px;
+          flex-grow: 1;
+          display: flex;
+          flex-direction: column;
+      }
+      .month-year-label {
+          display: flex;
+          justify-content: space-between;
+          font-weight: bold;
+          margin-bottom: 6px;
+      }
+      .calendar-grid {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 4px;
+          text-align: center;
+          font-size: 0.85rem;
+          flex-grow: 1;
+      }
+      .day-cell {
+          background-color: #333;
+          border-radius: 3px;
+          padding: 6px 0;
+          color: #fff;
+          cursor: pointer;
+          transition: background-color 0.3s ease;
+      }
+      /* New: Highlight day cell on hover */
+      .day-cell:hover {
+          background-color: #666;
+      }
+      .day-cell.today {
+          background-color: #555;
+          font-weight: bold;
+      }
+      .day-cell.blank {
+          visibility: hidden;
+      }
+      .calendar-footer {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.85rem;
+          margin-top: auto;
+          margin-bottom: 4px;
+      }
+      .toggle-switch {
+          position: relative;
+          width: 30px;
+          height: 16px;
+          margin-left: 8px;
+      }
+      .toggle-switch input {
+          display: none;
+      }
+      .toggle-switch label {
+          position: absolute;
+          cursor: pointer;
+          background-color: #666;
+          border-radius: 16px;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+      }
+      .toggle-switch label:before {
+          content: "";
+          position: absolute;
+          width: 16px;
+          height: 16px;
+          background-color: #ccc;
+          border-radius: 50%;
+          top: 0;
+          left: 0;
+          transition: transform 0.2s ease;
+      }
+      .toggle-switch input:checked + label:before {
+          transform: translateX(14px);
+      }
+      .today-row {
+          display: flex;
+          justify-content: space-between;
+          color: #ccc;
+      }
+      
+      /* Media Queries for Smartphones and Smaller Screens */
+      @media (max-width: 768px) {
+          .segments-container {
+              flex-direction: column;
+          }
+          .segment {
+              width: 90%;
+              margin: 10px auto;
+          }
+          .segment.row {
+              flex-direction: column;
+              min-height: auto;
+          }
+          #gnomeNotifications,
+          #gnomeCalendarPanel {
+              width: 100%;
+              border-right: none;
+              margin-bottom: 20px;
+          }
+      }
+      /* Custom modal size for small screens */
+      @media (max-width: 576px) {
+        .modal-dialog {
+          max-width: 95%;
+          margin: 1.75rem auto;
+        }
+      }
+      @media (min-width: 577px) and (max-width: 768px) {
+        .modal-dialog {
+          max-width: 90%;
+          margin: 2rem auto;
+        }
+      }
+      
+      /* Dark-themed Modal Styling */
+      .modal-content {
+          background-color: #222;
+          color: #f1f1f1;
+          border: none;
+      }
+      .modal-header, .modal-footer {
+          border: none;
+      }
+      .modal-title {
+          color: #f1f1f1;
+      }
+      .btn-close {
+          filter: invert(1);
+      }
+      #tableWrapper {
+          display: none; /* Hide table container until routine and day are selected */
+      }
+      #loadingOverlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: #000;  /* Same as page background */
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          opacity: 1;
+          transition: opacity 3s ease;
+      }
+      .spinner {
+          border: 5px solid #444;
+          border-top: 5px solid #fff;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+      }
+      .hidden {
+          display: none;
+      }
+/* Modern Dark Offcanvas */
+.offcanvas {
+  background: linear-gradient(135deg, #1e1e1e, #2c2c2c);
+  color: #e0e0e0;
+  border: none;
+  border-radius: 0;
+  box-shadow: -4px 0 15px rgba(0, 0, 0, 0.8);
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+/* Offcanvas Header */
+.offcanvas-header {
+  background: transparent;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.offcanvas-header h5 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.offcanvas .btn-close {
+  filter: invert(1);
+  background: none;
+  border: none;
+  opacity: 0.75;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.offcanvas .btn-close:hover {
+  opacity: 1;
+}
+
+/* Offcanvas Body */
+.offcanvas-body {
+  padding-top: 0.5rem;
+  font-size: 0.95rem;
+}
+
+/* Form Elements */
+.offcanvas .form-select,
+.offcanvas .form-control {
+  background-color: #333;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+}
+
+.offcanvas .form-select:focus,
+.offcanvas .form-control:focus {
+  background-color: #333;
+  color: #e0e0e0;
+  border-color: #555;
+  box-shadow: none;
+}
+
+/* Form Labels & Headings */
+.offcanvas h6,
+.offcanvas label {
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+/* Buttons inside the Offcanvas */
+.offcanvas .btn-primary {
+  background-color: #0d6efd;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 1rem;
+}
+
+.offcanvas .btn-secondary {
+  background-color: #555;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 1rem;
+}
+
+.offcanvas .btn-primary:hover,
+.offcanvas .btn-secondary:hover {
+  opacity: 0.9;
+}
+
+/* Progress Bars */
+.offcanvas .progress {
+  height: 22px;
+  background-color: #444;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.offcanvas .progress-bar {
+  font-size: 0.85rem;
+  line-height: 22px;
+  font-weight: 500;
+}
+
+/* Horizontal Divider */
+.offcanvas hr {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Spacing Enhancements */
+.offcanvas .mb-3 {
+  margin-bottom: 1rem;
+}
+.day-cell.selected {
+    background-color: #777; /* Lighter grey highlight for clicked date cells */
+    /* Optionally, you can add other styles if needed, such as a border, etc. */
+}
+@keyframes toggleAnimation {
+  0% {
+    transform: scale(1);
+    background-color: bisque; /* original background */
+  }
+  50% {
+    transform: scale(1.5);
+    background-color: bisque; /* highlighted color during animation */
+  }
+  100% {
+    transform: scale(1);
+    background-color: bisque;
+  }
+}
+
+.toggle-switch label.animate:before {
+  animation: toggleAnimation 0.3s ease;
+}
+@media (max-width: 576px) {
+  #statsOffcanvas {
+    width: 80% !important;   /* You can adjust percentage as needed */
+    max-width: 320px;         /* Optional: Limit with a fixed maximum width */
+  }
+}
+.offcanvas .progress-bar.bg-success {
+  background-color: #26a69a; /* Modern teal color */
+  transition: width 1.5s ease-out;
+}
+.day-cell.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.input-group.mb-3 {
+  position: relative;
+  overflow: hidden; /* default state can be hidden/auto */
+}
+
+.input-group.mb-3:focus-within {
+  overflow: visible;
+}
+.nav-item0:hover{
+  transform: scale(1.04);
+}
+.nav-item1:hover{
+  transform: scale(1.04);
+}.nav-item2:hover{
+  transform: scale(1.04);
+}.nav-item3:hover{
+  transform: scale(1.04);
+}.nav-item4:hover{
+  transform: scale(1.04);
+}
+@media (max-width: 576px) {
+  .segments-container {
+    gap: 40px;  /* Adds a 20px gap between stacked segments */
+  }
+}
+
+  </style>
+</head>
+
+<body>
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+  </div>
+  <!-- Header -->
+  <header class="custom-header">
+    <div class="container grid-container">
+      <div class="left-spacer"></div>
+      <div class="top-title text-center">
+        <h1 class="fw-bold">Demiurge</h1>
+      </div>
+      <nav class="navbar navbar-expand-lg navbar-dark justify-content-end">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" 
+                data-bs-target="#headerNavbar" aria-controls="headerNavbar" 
+                aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse justify-content-end" id="headerNavbar">
+          <ul class="navbar-nav">
+            <li class="nav-item0">
+              <a class="nav-link" href="#" onclick="redirectLogs()">Home</a>
+            </li>
+            <li class="nav-item1">
+              <a class="nav-link" href="#" onclick="redirectLockers()">Lockers</a>
+            </li>
+            <li class="nav-item2">
+              <a class="nav-link" href="#" onclick="showStatsOffcanvas()">Goals & Stats</a>
+            </li>
+            <li class="nav-item3">
+              <a class="nav-link" href="#" onclick="redirectTutorials()">Tutorials</a>
+            </li>
+            <li class="nav-item4">
+              <a class="nav-link" href="#" onclick="redirectProgressPics()">Progress Pics</a>
+            </li>
+          </ul>
+          
+        </div>
+      </nav>
+    </div>
+  </header>
+  
+  <div class="main-content">
+    <div class="container segments-container">
+      <!-- Coach Workout Plan Segment -->
+      <div class="segment">
+        <h2>Demiurge's Workout Plan</h2>
+        <p>Select a routine and day to set up the workout plan.</p>
+        <div class="input-group mb-3">
+            <label class="input-group-text" for="routineSelect">Choose Routine:</label>
+            <select id="routineSelect" class="form-select">
+                <option value="Push Pull Legs" selected>Push Pull Legs</option>
+                <option value="Chest Back Legs Arms">Chest Back Legs Arms</option>
+                <option value="Full Body">Full Body</option>
+                <option value="Upper/Lower Split">Upper/Lower Split</option>
+            </select>
+        </div>
+        <div class="input-group mb-3">
+            <label class="input-group-text" for="daySelect">Select Day:</label>
+            <select id="daySelect" class="form-select" onchange="handleDayChange()">
+            </select>
+        </div>
+        <div id="workoutPlanHeader" class="hidden">
+            <h4>Workout Plan for <span id="selectedDay"></span> Day</h4>
+            <p>Use the small buttons within the table header to add or remove columns and rows.</p>
+        </div>
+        <!-- Coach table now wrapped in a scrollable container -->
+        <div id="tableWrapper" class="scrollable-table-wrapper">
+          <table id="coachTable" class="table table-striped table-hover table-dark">
+              <thead>
+                  <tr id="tableHeader">
+                      <th scope="col">
+                          Set 
+                          <button onclick="addRow()" class="btn btn-link small-btn p-0">+</button>
+                          <button onclick="removeRow()" class="btn btn-link small-btn p-0">–</button>
+                      </th>
+                      <th scope="col">
+                          Exercise 1 
+                          <button onclick="addColumn()" class="btn btn-link small-btn p-0">+</button>
+                          <button onclick="removeColumn()" class="btn btn-link small-btn p-0">–</button>
+                      </th>
+                  </tr>
+              </thead>
+              <tbody id="tableBody">
+                  <tr>
+                      <td>Set 1</td>
+                      <td><input type="text" placeholder="Reps/Weight"></td>
+                  </tr>
+              </tbody>
+          </table>
+        </div>
+        <button type="button" class="btn btn-outline-light btn-md save-butt" onclick="saveWorkoutPlan()">
+          Save Plan
+        </button>
+      </div>
+      
+<!-- GNOME-Style User Progress Segment -->
+<div class="segment d-flex flex-wrap" style="align-items: stretch;">
+  <!-- Left Panel: Calendar Panel with Headline -->
+  <div class="left-panel flex-grow-1" id="gnomeCalendarPanel">
+    <div class="gnome-panel h-100 d-flex flex-column">
+      <!-- Moved Headline -->
+      <h2 id="progressTrackerTitle">User Progress Tracker</h2>
+      <div class="calendar-header mb-3">
+        <div class="calendar-day-label" id="calDayLabel">Πέμπτη</div>
+        <div class="calendar-date-label" id="calDateLabel">Απριλίου 3 2025</div>
+      </div>
+      <div class="calendar-body flex-grow-1 d-flex flex-column">
+        <div class="month-year-label" id="calMonthYear">
+          <span>Απρίλιος</span>
+          <span>2025</span>
+        </div>
+        <div class="calendar-grid flex-grow-1" style="align-content: start;">
+          <!-- Calendar grid populated by script -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel: Input Fields with Toggle Switch-->
+  <div class="right-panel" id="gnomeNotifications" style="border-left: 1px solid #555; width: 500px;">
+    <div class="gnome-panel h-100 d-flex flex-column">
+      <!-- Instructional text -->
+      <p>Plug in the day of the workout and your bodyweight and start tracking</p>
+      <div class="input-group mb-3">
+        <label class="input-group-text" for="inputGroupSelect01">Routine</label>
+        <select class="form-select" id="inputGroupSelect01">
+          <option value="Push Pull Legs">Push Pull Legs</option>
+          <option value="Chest Back Legs Arms">Chest Back Legs Arms</option>
+          <option value="Full Body">Full Body</option>
+          <option value="Upper/Lower Split">Upper/Lower Split</option>
+        </select>
+      </div>
+      
+      <div class="input-group mb-3">
+        <label class="input-group-text" for="inputGroupSelect02">Day</label>
+        <select class="form-select" id="inputGroupSelect02">
+          <option value="" selected>Choose...</option>
+          <option value="Rest" >Rest</option>  
+          <!-- Options will be inserted by setUserDayOptions() -->
+        </select>
+      </div>
+
+      <div class="input-group mb-3">
+        <label class="input-group-text" for="bodyweightInput">Kg</label>
+        <select class="form-select" id="bodyweightInput">
+          <!-- Options will be dynamically populated -->
+        </select>
+      </div>
+      
+      <!-- New Toggle Controls -->
+      <div class="d-flex justify-content-between align-items-center mt-auto">
+        <!-- Track Progress Toggle -->
+        <div class="d-flex align-items-center">
+          <span class="me-2">Track Workout</span>
+          <div class="toggle-switch">
+            <input type="checkbox" id="progressToggle">
+            <label for="progressToggle"></label>
+          </div>
+        </div>
+    
+      </div>
+    </div>
+  </div>
+</div>
+    </div>
+  </div>
+
+<!-- Modal: User Progress Table -->
+<div class="modal fade" id="progressModal" tabindex="-1" aria-labelledby="progressModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 30px;">
+      <div class="modal-header">
+        <h5 class="modal-title text-center w-100" id="progressModalLabel">User Progress Log</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- The user progress table is wrapped in a scrollable container -->
+        <div id="modalTableWrapper" class="scrollable-table-wrapper">
+          <table id="UserTable" class="table table-striped table-hover table-dark">
+            <thead>
+              <tr id="tableHeader1">
+                <th scope="col">
+                  Set 
+                  <button onclick="addUserRow()" class="btn btn-link small-btn p-0">+</button>
+                  <button onclick="removeUserRow()" class="btn btn-link small-btn p-0">–</button>
+                </th>
+                <th scope="col">
+                  <select class="form-select form-select-sm" 
+                          style="background-color: #444; color: #fff; border: none; font-weight: bold; text-align: center;">
+                    <option value="" selected disabled>Select Exercise</option>
+                    <option value="bench_press">Bench Press</option>
+                    <option value="squat">Squat</option>
+                    <option value="deadlift">Deadlift</option>
+                    <option value="overhead_press">Overhead Press</option>
+                    <option value="bicep_curl">Bicep Curl</option>
+                  </select>
+                  <div class="d-inline">
+                    <button onclick="addUserColumn()" class="btn btn-link small-btn p-0">+</button>
+                    <button onclick="removeUserColumn()" class="btn btn-link small-btn p-0">–</button>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="tableBody1">
+              <tr>
+                <th scope="row">Set 1</th>
+                <td>
+                  <input type="text" class="form-control form-control-sm" placeholder="Reps/Weight"
+                         style="background-color: #444; color: #fff; font-weight: bold; border: none; text-align: center;">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <!-- The Track Progress button is in the modal footer -->
+        <button type="button" class="btn btn-primary" onclick="submitUserProgress()">Track Progress</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <footer class="footer mt-5 py-5" style="background-color: black; color: white;">
+      <div class="container">
+          <div class="row text-center text-md-start">
+              <div class="col-md-4 mb-4">
+                  <h5 class="fw-bold text-uppercase">About Me</h5>
+                  <p style="color: #bbb;">I'm a certified fitness coach dedicated to helping you reach your best self through tailored workout plans and guidance.</p>
+              </div>
+              <div class="col-md-4 mb-4">
+                  <h5 class="fw-bold text-uppercase">Services</h5>
+                  <ul class="list-unstyled" style="color: #bbb;">
+                      <li>✔ Custom Workout Plans</li>
+                      <li>✔ Nutrition Guidance</li>
+                      <li>✔ 1-on-1 Coaching</li>
+                      <li><button type="button" class="btn btn-custom" onclick="redirectToDashboard()">Go to Dashboard</button></li>
+                  </ul>
+              </div>
+              <div class="col-md-4 mb-4">
+                  <h5 class="fw-bold text-uppercase">Contact</h5>
+                  <p style="color: #bbb;">info@fitnesscoaching.com</p>
+                  <p style="color: #bbb;">+123 456 7890</p>
+                  <div>
+                      <a href="#" class="social-icon"><i class="bi bi-facebook"></i></a>
+                      <a href="#" class="social-icon"><i class="bi bi-instagram"></i></a>
+                      <a href="#" class="social-icon"><i class="bi bi-twitter"></i></a>
+                  </div>
+              </div>
+          </div>
+          <hr class="bg-light my-4">
+          <p class="text-center small" style="color: #bbb;">&copy; 2025 Fitness Coaching. All rights reserved.</p>
+      </div>
+  </footer>
+  <!-- Offcanvas for Stats -->
+<!-- Offcanvas for Stats -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="statsOffcanvas" aria-labelledby="statsOffcanvasLabel">
+  <div class="offcanvas-header">
+    <h8 class="offcanvas-title" id="statsOffcanvasLabel">Goals & Stats.</h8>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+    <!-- Goal Form -->
+    <form id="goalForm">
+      <h6>Set Your Workout and Bodyweight Goals</h6>
+      <div class="mb-3">
+        <label for="exerciseGoal" class="form-label">Exercise Goal</label>
+        <select class="form-select" id="exerciseGoal" disabled>
+          <option value="" selected disabled>Select Exercise</option>
+          <option value="bench_press">Bench Press</option>
+          <option value="squat">Squat</option>
+          <option value="deadlift">Deadlift</option>
+          <option value="overhead_press">Overhead Press</option>
+          <option value="bicep_curl">Bicep Curl</option>
+          <option value="triceps_extension">Triceps Extension</option>
+          <option value="leg_press">Leg Press</option>
+          <option value="lat_pull_down">Lat Pulldown</option>
+          <option value="shoulder_press">Shoulder Press</option>
+          <option value="barbell_row">Barbell Row</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="weightGoal" class="form-label">Target Weight (Kg)</label>
+        <input type="number" class="form-control" id="weightGoal" placeholder="Enter target weight" disabled>
+      </div>
+      <div class="mb-3">
+        <label for="repsGoal" class="form-label">Target Reps</label>
+        <input type="number" class="form-control" id="repsGoal" placeholder="Enter target reps" disabled>
+      </div>
+      <div class="mb-3">
+        <label for="bodyweightGoal" class="form-label">Desired Bodyweight (Kg)</label>
+        <input type="number" class="form-control" id="bodyweightGoal" placeholder="Enter desired bodyweight" disabled>
+      </div>
+      <div class="d-flex justify-content-end">
+        <button type="button" id="editGoalsBtn" class="btn btn-secondary btn-sm me-2" onclick="enableGoals()">Edit Goals</button>
+        <button type="submit" class="btn btn-primary btn-sm"  id="saveGoalsBtn">Save Goals</button>
+      </div>
+    </form>
+    <hr>
+<!-- Progress Bars Section -->
+<div id="progressBars">
+  <h5>You are more that your statistics</h5>
+  <h8>Review your bodyweight and strength progression</h8>
+  <div class="mb-3">
+    <label class="form-label">Exercise Progress (Bench Press)</label>
+    <div class="progress">
+      <div class="progress-bar bg-info" role="progressbar" style="width: 50%;" 
+           aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">50%</div>
+    </div>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Bodyweight Progress</label>
+    <div class="progress">
+      <div class="progress-bar bg-success" role="progressbar" style="width: 30%;" 
+           aria-valuenow="30" aria-valuemin="0" aria-valuemax="100">30%</div>
+    </div>
+  </div>
+  <!-- New Chart Canvas -->
+  <div class="mb-3">
+    <canvas id="bodyweightChart"></canvas>
+  </div>
+</div>
+  </div>
+</div>
+  
+  <!-- 1. Bootstrap Bundle (includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- 2. Other libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- 3. Your Custom JS Files -->
+  <script type="application/javascript" src="jsfiles/coachworkoutplan.js"></script>
+  <script type="application/javascript" src="jsfiles/userprog.js"></script>
+  <script type="application/javascript" src="jsfiles/stats.js"></script>
+  
+  <script>
+      function redirectLockers() {
+        location.replace('lockers.html');
+      }
+      function redirectTutorials() {
+        location.href = 'tutorials.html';
+      }
+      function redirectProgressPics() {
+        location.href = 'progresspics.html';
+      }
+      function redirectLogs() {
+        location.href = 'logs.html';
+      }
+  </script>
+</body>
+</html>
