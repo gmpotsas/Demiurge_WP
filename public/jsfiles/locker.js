@@ -12,7 +12,7 @@ localStorage.clear();
 sessionStorage.clear();
 
 // Generate lockers dynamically
-function generateLockers(data) {
+async function generateLockers(data) {
     const lockerGrid = document.querySelector('.locker-grid');
     let html = '';
     for (let i = 1; i <= 25; i++) {
