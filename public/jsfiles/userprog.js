@@ -5,7 +5,61 @@ let selectedDate = new Date();
 
 // User id is pulled from local storage (adjust based on your auth logic)
 let user_id = localStorage.getItem('userId');
+/**
+ * Build the user‑modal table with the same #cols & #rows as the coach table,
+ * but leave all fields blank for the user to fill.
+ */
+function syncUserTableStructure() {
+  const coachHeaderEls = document.querySelectorAll('#tableHeader th');
+  const coachRows      = document.querySelectorAll('#tableBody tr').length;
+  const hdr            = document.getElementById('tableHeader1');
+  const tb             = document.getElementById('tableBody1');
 
+  // clear old
+  hdr.innerHTML = '';
+  tb.innerHTML  = '';
+
+  // re-create the Set‑column header
+  const setTH = document.createElement('th');
+  setTH.innerHTML =
+    'Set ' +
+    '<button onclick="addUserRow()" class="btn btn-link small-btn p-0">+</button>' +
+    '<button onclick="removeUserRow()" class="btn btn-link small-btn p-0">–</button>';
+  hdr.appendChild(setTH);
+
+  // for each coach header after index 0
+    // for each coach header after index 0, grab the coach‑table <select> value
+    coachHeaderEls.forEach((coachTH, idx) => {
+      if (idx === 0) return; // skip the "Set" column
+      // find the exercise dropdown the coach is using
+      const coachSelect = coachTH.querySelector('select');
+      // use the label text; fallback to stripping icons if no <select>
+     const label = coachSelect
+        ? coachSelect.options[coachSelect.selectedIndex].textContent
+        : coachTH.textContent.replace(/[+–]/g,'').trim();
+      // build user header dropdown pre‑selected to that same label
+      hdr.appendChild(createExerciseHeaderCell(label));
+    });
+
+  // build blank rows to match coachRows
+  for (let r = 1; r <= coachRows; r++) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.textContent = 'Set ' + r;
+    tr.appendChild(td);
+
+    // one empty input cell per coach column
+    for (let c = 1; c < coachHeaderEls.length; c++) {
+      const cell = document.createElement('td');
+      cell.innerHTML = `
+        <input type="text" placeholder="Reps/Weight"
+               style="background-color:#444;color:#fff;border:none;width:100%;text-align:center;">
+      `;
+      tr.appendChild(cell);
+    }
+    tb.appendChild(tr);
+  }
+}
 // --- Calendar Rendering Functions ---
 function renderCalendar(month, year) {
   const calendarGrid = document.querySelector('.calendar-grid');
@@ -68,6 +122,9 @@ function renderCalendar(month, year) {
         calDateLabel.textContent = `${getMonthName(month)} ${d} ${year}`;
         // Load the user progress for this date.
         loadUserProgress();
+        document.dispatchEvent(new CustomEvent('calendarDateChanged', {
+          detail: { selectedDate }   // make the Date object available in case you need it
+        }));
       });
     }
     calendarGrid.appendChild(dayCell);
@@ -85,7 +142,7 @@ function getMonthName(idx) {
 
 // --- Left Panel: Set Day Dropdown Options Based on Routine ---
 function setUserDayOptions(routine) {
-  const daySelect = document.getElementById('inputGroupSelect02');
+  const daySelect = document.getElementById('daySelect');
   daySelect.innerHTML = "";
   const defaultOption = document.createElement("option");
   defaultOption.value = "";
@@ -140,6 +197,7 @@ function addUserRow() {
     input.style.border = "none";
     input.style.width = "100%";
     input.style.textAlign = "center";
+    input.style.borderRadius = "30px";
     td.appendChild(input);
     newRow.appendChild(td);
   }
@@ -173,6 +231,7 @@ function addUserColumn() {
     input.style.fontWeight = "bold";
     input.style.border = "none";
     input.style.textAlign = "center";
+    input.style.borderRadius = "30px";
     newTD.appendChild(input);
     row.appendChild(newTD);
   });
@@ -196,24 +255,33 @@ function removeUserColumn() {
 // --- Helper: Build an Exercise Header Cell with Dropdown and Controls ---
 function createExerciseHeaderCell(exerciseName = "") {
   const th = document.createElement("th");
-  const selectHTML = `
-    <select class="form-select form-select-sm" 
+
+  // start the <select>, then:
+  //  • if exerciseName is non‑empty, render it as the first, selected option
+  //  • else render a disabled placeholder
+  const opts = exerciseName
+    ? `<option value="${exerciseName}" selected>${exerciseName}</option>`
+    : `<option value="" disabled selected>Select Exercise</option>`;
+
+  // now the rest of your exercise choices
+  th.innerHTML = `
+    <select class="form-select form-select-sm"
             style="background-color: #444; color: #fff; border: none; font-weight: bold; text-align: center;">
-      <option value="" ${exerciseName === "" ? "selected" : "disabled"}>Select Exercise</option>
-      <option value="bench_press" ${exerciseName === "Bench Press" ? "selected" : ""}>Bench Press</option>
-      <option value="squat" ${exerciseName === "Squat" ? "selected" : ""}>Squat</option>
-      <option value="deadlift" ${exerciseName === "Deadlift" ? "selected" : ""}>Deadlift</option>
-      <option value="overhead_press" ${exerciseName === "Overhead Press" ? "selected" : ""}>Overhead Press</option>
-      <option value="bicep_curl" ${exerciseName === "Bicep Curl" ? "selected" : ""}>Bicep Curl</option>
+      ${opts}
+      <option value="bench_press">Bench Press</option>
+      <option value="squat">Squat</option>
+      <option value="deadlift">Deadlift</option>
+      <option value="overhead_press">Overhead Press</option>
+      <option value="bicep_curl">Bicep Curl</option>
     </select>
     <div class="d-inline">
       <button onclick="addUserColumn()" class="btn btn-link small-btn p-0">+</button>
       <button onclick="removeUserColumn()" class="btn btn-link small-btn p-0">–</button>
     </div>
   `;
-  th.innerHTML = selectHTML;
   return th;
 }
+
 
 // --- Table Population Functions ---
 function populateUserProgressTable(tableData) {
@@ -249,6 +317,7 @@ function populateUserProgressTable(tableData) {
       input.style.border = "none";
       input.style.width = "100%";
       input.style.textAlign = "center";
+      input.style.borderRadius = "30px";
       td.appendChild(input);
       tr.appendChild(td);
     });
@@ -283,6 +352,7 @@ function resetUserProgressTable() {
   input.style.fontWeight = "bold";
   input.style.border = "none";
   input.style.textAlign = "center";
+  input.style.borderRadius = "30px";
   td.appendChild(input);
   tr.appendChild(td);
 
@@ -291,197 +361,204 @@ function resetUserProgressTable() {
 
 // --- Data Submission Function ---
 async function submitUserProgress() {
-  const routine = document.getElementById('inputGroupSelect01').value;
-  const day = document.getElementById('inputGroupSelect02').value;
-  // For the dropdown, the value is taken from the selected option.
-  const bodyweight = document.getElementById('bodyweightInput').value;
+  const routine    = document.getElementById('routineSelect').value;
+  const day        = document.getElementById('daySelect').value;
+  const bodyweight = document.getElementById('modalBodyweightInput').value;
+    // new: build YYYY‑MM‑DD HH:mm:ss in local time
+    const Y  = selectedDate.getFullYear();
+    const M  = String(selectedDate.getMonth()+1).padStart(2,'0');
+    const D  = String(selectedDate.getDate()).padStart(2,'0');
+    const h  = String(selectedDate.getHours()).padStart(2,'0');
+    const m  = String(selectedDate.getMinutes()).padStart(2,'0');
+    const s  = String(selectedDate.getSeconds()).padStart(2,'0');
+    const ts = `${Y}-${M}-${D} ${h}:${m}:${s}`;
 
-  const year = selectedDate.getFullYear();
-  const month = ('0' + (selectedDate.getMonth() + 1)).slice(-2);
-  const dateOfMonth = ('0' + selectedDate.getDate()).slice(-2);
-  const hours = ('0' + selectedDate.getHours()).slice(-2);
-  const minutes = ('0' + selectedDate.getMinutes()).slice(-2);
-  const seconds = ('0' + selectedDate.getSeconds()).slice(-2);
-  const date = `${year}-${month}-${dateOfMonth} ${hours}:${minutes}:${seconds}`;
+  // --- gather tableData from #tableHeader1 / #tableBody1 ---
+  const tableData = { headers: [], rows: [] };
 
-  const tableHeaders = [];
-  const headerRow = document.getElementById("tableHeader1");
-  for (let i = 1; i < headerRow.children.length; i++) {
-    const cell = headerRow.children[i];
-    const selectEl = cell.querySelector("select");
-    let headerText = "";
-    if (selectEl) {
-      headerText = selectEl.options[selectEl.selectedIndex]?.text || "";
-    } else {
-      headerText = cell.textContent.replace('+', '').replace('–', '').trim();
-    }
-    tableHeaders.push(headerText);
+  // headers: skip the first “Set” column
+  document.querySelectorAll('#tableHeader1 th')
+    .forEach((th, i) => {
+      if (i === 0) return;
+      const select = th.querySelector('select');
+      tableData.headers.push(select.value);
+    });
+
+  // rows: each <tr> gives a { set, data: [...] }
+  document.querySelectorAll('#tableBody1 tr')
+    .forEach(tr => {
+      const setLabel = tr.children[0].textContent.trim();
+      const data = [];
+      // cell 1…n
+      for (let c = 1; c < tr.children.length; c++) {
+        const input = tr.children[c].querySelector('input');
+        data.push(input.value);
+      }
+      tableData.rows.push({ set: setLabel, data });
+    });
+
+  if (!routine || !day || !bodyweight) {
+    return alert("Routine, day and bodyweight are all required.");
   }
 
-  const rows = [];
-  const tbody = document.getElementById("tableBody1");
-  for (let i = 0; i < tbody.rows.length; i++) {
-    const row = tbody.rows[i];
-    const setLabel = row.cells[0].textContent.trim();
-    const data = [];
-    for (let j = 1; j < row.cells.length; j++) {
-      const input = row.cells[j].querySelector("input");
-      data.push(input ? input.value.trim() : "");
-    }
-    rows.push({ set: setLabel, data: data });
-  }
-
-  const tableData = { headers: tableHeaders, rows: rows };
-
-  if (routine && day && bodyweight && user_id) {
-    const payload = {
-      user_id: user_id,
-      routine: routine,
-      day: day,
-      bodyweight: bodyweight,
-      date: date,
-      table: tableData
-    };
-
-    try {
-      const response = await fetch('/api/userprogress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await response.json();
-      alert("Progress submitted successfully!");
-      const progressModal = bootstrap.Modal.getInstance(document.getElementById('progressModal'));
-      if (progressModal) progressModal.hide();
-    } catch (error) {
-      console.error("Error submitting progress:", error);
-      alert("Error submitting progress.");
-    }
-  } else {
-    alert("Please ensure you have selected a day, entered your bodyweight, and are logged in.");
-  }
-}
-
-// --- Function to Load User Progress Data from Backend ---
-async function loadUserProgress() {
-  resetUserProgressTable();
-
-  const routine = document.getElementById('inputGroupSelect01').value;
-  const dayOfMonth = selectedDate.getDate();
-  const month = selectedDate.getMonth() + 1;
-  const year = selectedDate.getFullYear();
-
-  const queryStr = `/api/userprogress?user_id=${user_id}&day=${dayOfMonth}&month=${month}&year=${year}&routine=${encodeURIComponent(routine)}`;
+  const payload = {
+    user_id:    user_id,
+    routine:    routine,
+    day:        day,
+    bodyweight: bodyweight,
+    date:       ts,
+    table:      tableData
+  };
 
   try {
-    const response = await fetch(queryStr);
-    if (!response.ok) {
-      if (response.status === 404) {
-        resetUserProgressTable();
-        return;
-      } else {
-        console.error("Error loading user progress:", response.statusText);
-        return;
-      }
-    }
-
-    const data = await response.json();
-
-    if (data) {
-      if (data.bodyweight != null && String(data.bodyweight).trim() !== "") {
-        document.getElementById("bodyweightInput").value = parseFloat(data.bodyweight).toFixed(1);
-      }
-      if (data.day != null && String(data.day).trim() !== "") {
-        document.getElementById("inputGroupSelect02").value = String(data.day);
-      }
-      if (data.table && Object.keys(data.table).length > 0) {
-        populateUserProgressTable(data.table);
-      } else {
-        resetUserProgressTable();
-      }
-    }
-  } catch (err) {
-    console.error("Error loading user progress:", err);
-    resetUserProgressTable();
+    await fetch('/api/userprogress', {
+      method:  'POST',
+      headers: {'Content-Type':'application/json'},
+      body:    JSON.stringify(payload)
+    });
+    alert("Progress submitted successfully!");
+    bootstrap.Modal.getInstance(document.getElementById('progressModal')).hide();
+  } catch(err) {
+    console.error(err);
+    alert("Error submitting progress.");
   }
 }
+// --- Function to Load User Progress Data from Backend ---
+async function loadUserProgress() {
+  // 1) Mirror coach → user with empty inputs
+  syncUserTableStructure();
 
+  // 2) Build your query params
+  const routine = document.getElementById('routineSelect').value;
+  const workoutDay   = document.getElementById('daySelect').value;
+  // the actual date you clicked
+  const Y = selectedDate.getFullYear();
+  const M = String(selectedDate.getMonth()+1).padStart(2,'0');
+  const D = String(selectedDate.getDate()).padStart(2,'0');
+  const dateParam = `${Y}-${M}-${D}`;
+  
+  // grab the coach’s “day” (Push/Pull/Legs/etc.) from the workout form
+  
+  const qs = `/api/userprogress?user_id=${user_id}`
+           + `&routine=${encodeURIComponent(routine)}`
+           + `&day=${encodeURIComponent(workoutDay)}`
+           + `&date=${dateParam}`;
+
+  try {
+    const resp = await fetch(qs);
+    // nothing in DB → keep the blank structure we just made
+    if (!resp.ok) return;
+
+    const data = await resp.json();
+    // 3) If we got a bodyweight, populate that dropdown
+    if (data.bodyweight != null) {
+      document.getElementById('modalBodyweightInput').value =
+        parseFloat(data.bodyweight).toFixed(1);
+    }
+    // 4) If we got a saved table, rebuild it
+    if (data.table) {
+      populateUserProgressTable(data.table);
+    }
+  } catch(err) {
+    console.error("Error loading user progress:", err);
+  }
+}
 // --- Function to Open Modal When Called (Optional) ---
 // This function now also updates the modal title based on the user's info,
 // the selected day, and the bodyweight.
-function showUserProgressModal() {
-  updateProgressModalTitle().then(() => {
-    const progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
-    progressModal.show();
-    loadUserProgress();
-  });
+async function showUserProgressModal() {
+  // 1) mirror coach‑table shape
+  syncUserTableStructure();
+
+  // 2) update the title (you already have this as async)
+  await updateProgressModalTitle();
+
+  // 3) load any existing progress, then rebuild the table
+  await loadUserProgress();
+
+  // 4) finally, open the modal
+  new bootstrap.Modal(document.getElementById('progressModal')).show();
 }
-
 // --- Checkbox Event Listener for Triggering Modal ---
-document.getElementById('progressToggle').addEventListener('change', function() {
-  if (this.checked) {
-    const dayField = document.getElementById('inputGroupSelect02').value;
-    const bodyweightField = document.getElementById('bodyweightInput').value.trim();
-    if (dayField && bodyweightField) {
-      resetUserProgressTable();
+document.getElementById('progressToggle').addEventListener('change', async function() {
+  if (!this.checked) return;
 
-      const toggleLabel = document.querySelector('.toggle-switch label');
-      toggleLabel.classList.add('animate');
-      setTimeout(() => {
-        toggleLabel.classList.remove('animate');
-        showUserProgressModal();  // Use the dedicated function
-      }, 300);
-    } else {
-      alert("Please select a day and enter your bodyweight before tracking progress.");
-      this.checked = false;
-    }
-    loadUserProgress();
+  // ensure a day is picked
+  if (!document.getElementById('daySelect').value) {
+    alert("Please select a day before tracking progress.");
+    this.checked = false;
+    return;
   }
+
+  // mirror coach table immediately
+  syncUserTableStructure();
+
+  // run your little “flip” animation
+  const lbl = document.querySelector('.toggle-switch label');
+  lbl.classList.add('animate');
+
+  // after the flip, load + show
+  setTimeout(async () => {
+    lbl.classList.remove('animate');
+    await showUserProgressModal();
+  }, 300);
 });
 
 // --- Initialization on DOMContentLoaded ---
-document.addEventListener("DOMContentLoaded", function() {
-  const overlay = document.getElementById("loadingOverlay");
-  document.getElementById('inputGroupSelect02').value = "";
-
-  // Populate the dropdown with bodyweight options using vanilla JS.
+async function initPage() {
+  // 1) Populate the modal bodyweight dropdown
   populateBodyweightDropdown();
-  // Optionally, set the default value.
-  document.getElementById('bodyweightInput').value = "";
 
-  if (overlay) {
-    overlay.style.opacity = 0;
-    setTimeout(() => overlay.style.display = "none", 2000);
-  }
-  renderCalendar(currentMonth, currentYear);
 
-  // Clear the day input so it starts empty.
-  document.getElementById('inputGroupSelect02').value = "";
-
-  const coachRoutineEl = document.getElementById('routineSelect');
+  // 3) Copy coach → user routine & day options
+  const coachRoutineEl   = document.getElementById('routineSelect');
   const userRoutineInput = document.getElementById('inputGroupSelect01');
   if (coachRoutineEl && userRoutineInput) {
     const coachRoutine = coachRoutineEl.value;
     if (coachRoutine) {
-      userRoutineInput.value = coachRoutine;
+      userRoutineInput.value    = coachRoutine;
       userRoutineInput.disabled = true;
       setUserDayOptions(coachRoutine);
     }
-  } else {
-    console.error("Could not find routine select elements.");
   }
+
+  // 4) Update the left‑panel title
+  updateLeftColumnTitle();
+
+  // 5) Finally, fade out the overlay
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) {
+    overlay.style.opacity = '0';
+    overlay.addEventListener('transitionend', () => {
+      overlay.style.display = 'none';
+    }, { once: true });
+  }
+}
+
+
+window.addEventListener('load', () => {
+  // 1) run your init
+  renderCalendar(currentMonth, currentYear);
+
+  initPage && initPage();
+  // 2) fade out & remove overlay
+  const overlay = document.getElementById('loadingOverlay');
+  if (!overlay) return;
+  overlay.style.opacity = '0';
+  overlay.addEventListener('transitionend', () => {
+    overlay.style.display = 'none';
+  }, { once: true });
 });
 
-// --- Populates the bodyweight dropdown with weights from 40 to 140 kg in 0.1 increments.
+// Replace your old populateBodyweightDropdown() with this:
 function populateBodyweightDropdown() {
-  const selectElement = document.getElementById('bodyweightInput');
-  selectElement.innerHTML = ""; // Clear any existing options.
-  
-  for (let weight = 40.0; weight <= 140.0; weight += 0.1) {
-    const option = document.createElement('option');
-    option.value = weight.toFixed(1);
-    option.textContent = weight.toFixed(1);
-    selectElement.appendChild(option);
+  const select = document.getElementById('modalBodyweightInput');
+  select.innerHTML = '';
+  for (let w = 40.0; w <= 140.0; w += 0.1) {
+    const opt = document.createElement('option');
+    opt.value = w.toFixed(1);
+    opt.textContent = w.toFixed(1);
+    select.appendChild(opt);
   }
 }
 
@@ -517,9 +594,9 @@ async function updateProgressModalTitle() {
     }
     
     // Get the selected day from the dropdown.
-    const daySelected = document.getElementById('inputGroupSelect02').value || "Unknown day";
+    const daySelected    = document.getElementById('daySelect').value           || "Unknown day";
     // Get the bodyweight from the dropdown.
-    const bodyweight = document.getElementById('bodyweightInput').value || "Unknown weight";
+    const bodyweight     = document.getElementById('modalBodyweightInput').value || "Unknown weight";
     
     // Compose the new modal title.
     const modalTitle = `${userName}'s Workout Log for ${daySelected} day Weighing at ${bodyweight}kg`;
@@ -557,7 +634,3 @@ async function updateLeftColumnTitle() {
   }
 }
 
-// Call the function once DOM content is loaded or when appropriate.
-document.addEventListener("DOMContentLoaded", function() {
-  updateLeftColumnTitle();
-});

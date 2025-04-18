@@ -97,104 +97,71 @@ app.get('/api/getWorkoutPlan', (req, res) => {
 });
 
 app.get('/api/getWorkoutPlan1', (req, res) => {
-    const  {user_id , routine , day} = req.query;
-    if (!user_id || !routine || !day) {
-        return res.status(400).json({ success: false, message: "Missing required parameters: userId, routine, and day" });
+  const { user_id, routine, day, date } = req.query;
+  if (!user_id || !routine || !day) {
+    return res.status(400).json({ success: false, message: "Missing required parameters" });
+  }
+
+  // build a query that filters by the calendar date if provided
+  let sql    = `SELECT routine, day, plan_json, updated_at
+                FROM WorkoutPlans
+                WHERE user_id=? AND routine=? AND day=?`;
+  const params = [user_id, routine, day];
+
+  if (date) {
+    sql += ` AND DATE(created_at)=?`;
+    params.push(date);
+  }
+  sql += ` ORDER BY updated_at DESC LIMIT 1`;
+
+  con.query(sql, params, (err, result) => {
+    if (err)   return res.status(500).json({ success: false, message: "DB error" });
+    if (result.length) {
+      const plan = result[0];
+      plan.plan_json = JSON.parse(plan.plan_json);
+      return res.json({ success: true, plan });
     }
-    con.query(
-        "SELECT routine, day, plan_json, updated_at FROM WorkoutPlans WHERE user_id = ? AND routine=? AND day=? ORDER BY updated_at DESC LIMIT 1",
-        [user_id , routine , day],
-        (err, result) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({ success: false, message: "Database error" });
-            }
-            if (result.length) {
-                // Parse plan_json before sending it back, and include updated_at in response
-                const plan = result[0];
-                plan.plan_json = JSON.parse(plan.plan_json);
-                return res.json({ success: true, plan, updated_at: plan.updated_at });
-            } else {
-                return res.json({ success: false, message: "No plan found" });
-            }
-        }
-    );
+    return res.json({ success: false, message: "No plan found" });
+  });
 });
 
-//Coach Stores the Users workouts Plan
 app.post('/api/saveWorkoutPlan', (req, res) => {
-    const { userId, routine, day, planJson } = req.body;
-    if (!userId || !routine || !day || !planJson) {
-        return res.status(400).json({ success: false, message: 'Missing required fields.' });
-    }
+  const { userId, routine, day, planJson, date } = req.body;
+  if (!userId || !routine || !day || !planJson || !date) {
+    return res.status(400).json({ success: false, message: 'Missing fields.' });
+  }
 
-    // If the routine is "Push Pull Legs" and the day is "Push", "Pull", or "Legs",
-    // check if an entry already exists for that combination.
-       if (routine === "Push Pull Legs" && (day === "Push" || day === "Pull" || day === "Legs")
-        || routine === "Chest Back Legs Arms" && (day === "Chest" || day === "Back" || day === "Legs" || day=="Arms")
-        || routine === "Full Body" && (day === "Full Body")
-        || routine === "Upper Lower" && (day === "Upper" || day=="Lower")
-       ) {
-        con.query(
-            "SELECT workoutplan_id FROM WorkoutPlans WHERE user_id = ? AND routine = ? AND day = ? LIMIT 1",
-            [userId, routine, day],
-            (err, results) => {
-                if (err) {
-                    console.error(err);
-                    return res.status(500).json({ success: false, message: 'Database error.' });
-                }
-                if (results.length) {
-                    // Entry exists, so update it.
-                    con.query(
-                        "UPDATE WorkoutPlans SET plan_json = ? WHERE user_id = ? AND routine = ? AND day = ?",
-                        [JSON.stringify(planJson), userId, routine, day],
-                        (err, updateResult) => {
-                            if (err) {
-                                console.error(err);
-                                return res.status(500).json({ success: false, message: 'Database error.' });
-                            }
-                            res.json({ success: true, message: 'Workout plan updated for ' + day + '.' });
-                        }
-                    );
-                } else {
-                    // No entry exists, so insert a new record.
-                    con.query(
-                        "INSERT INTO WorkoutPlans (user_id, routine, day, plan_json) VALUES (?, ?, ?, ?)",
-                        [userId, routine, day, JSON.stringify(planJson)],
-                        (err, insertResult) => {
-                            if (err) {
-                                console.error(err);
-                                return res.status(500).json({ success: false, message: 'Database error.' });
-                            }
-                            res.json({ success: true, message: 'Workout plan saved for ' + day + '.' });
-                        }
-                    );
-                }
-            }
-        );
-    } 
+  // upsert by routine/day; always insert a new record but stamp created_at = date
+  // (or update existing—your choice; here’s a simple insert)
+  con.query(
+    `INSERT INTO WorkoutPlans
+      (user_id, routine, day, plan_json, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [userId, routine, day, JSON.stringify(planJson), date],
+    (err) => {
+      if (err) return res.status(500).json({ success: false, message: 'DB error.' });
+      res.json({ success: true, message: 'Plan saved.' });
+    }
+  );
 });
 
 // GET endpoint to load user progress for a specific date
 app.get('/api/userprogress', (req, res) => {
-  const { user_id, day, month, year, routine } = req.query;
-  if (!user_id || !day || !month || !year) {
+  const { user_id, routine , day, date } = req.query;
+  if (!user_id || !day || !routine || !date) {
     return res.status(400).json({ success: false, message: 'Missing required query parameters.' });
   }
   
   // Build a formatted date string (YYYY-MM-DD) from day, month, year parameters.
-  const dayStr = day.toString().padStart(2, '0');
-  const monthStr = month.toString().padStart(2, '0');
-  const formattedDate = `${year}-${monthStr}-${dayStr}`;
-
   const query = `
     SELECT * FROM UserProgress
     WHERE user_id = ? 
       AND routine = ?
+      AND day = ?
       AND DATE(created_at) = ?
   `;
   
-  const queryParams = [user_id, routine, formattedDate];
+  const queryParams = [user_id, routine, day,date];
   
   con.query(query, queryParams, (err, results) => {
     if (err) {
@@ -298,10 +265,10 @@ app.get('/api/userGoals', (req, res) => {
     
     // Fetch the latest goal for the user (ordered by goal_date descending)
     const query = `
-      SELECT * FROM UserGoals 
-      WHERE user_id = ? 
-      ORDER BY goal_date DESC 
-      LIMIT 1
+    SELECT * FROM UserGoals 
+    WHERE user_id = ? 
+    ORDER BY goal_date DESC, goal_id DESC 
+    LIMIT 1
     `;
     
     con.query(query, [userId], (err, results) => {
@@ -357,7 +324,7 @@ function getLocalDateString(date) {
 }
 
 function computeAndStoreWeeklyAverages(userId, callback) {
-  console.log(`computeAndStoreWeeklyAverages() called for userId: ${userId}`);
+  
   
   const getProgressQuery = `
     SELECT bodyweight, created_at 
@@ -396,7 +363,7 @@ function computeAndStoreWeeklyAverages(userId, callback) {
       }
       const diffDays = Math.floor((recordDate - firstDate) / (1000 * 60 * 60 * 24));
       const weekIndex = Math.floor(diffDays / 7);
-      console.log(`Record on ${getLocalDateString(recordDate)} falls in week index: ${weekIndex}`);
+
       if (!weekGroups[weekIndex]) {
         weekGroups[weekIndex] = {
           week_start_date: new Date(firstDate.getTime() + weekIndex * 7 * 24 * 60 * 60 * 1000),
@@ -406,7 +373,7 @@ function computeAndStoreWeeklyAverages(userId, callback) {
       weekGroups[weekIndex].records.push(record);
     });
       
-    console.log('Grouped progress records into weeks:', weekGroups);
+  
       
     let weeks = Object.keys(weekGroups).sort((a, b) => a - b);
     let weeklyAverages = [];
@@ -417,7 +384,6 @@ function computeAndStoreWeeklyAverages(userId, callback) {
         let weekIndices = Object.keys(weekGroups).map(Number);
         let maxWeekIndex = Math.max(...weekIndices);
         let currentWeekCount = weekGroups[maxWeekIndex].records.length;
-        console.log('Completed processing all weeks. Weekly averages:', weeklyAverages);
         return callback(null, { weeklyAverages, currentWeek: { week_index: maxWeekIndex, count: currentWeekCount } });
       }
       
@@ -428,7 +394,6 @@ function computeAndStoreWeeklyAverages(userId, callback) {
       // Calculate average bodyweight for this week.
       const sum = week.records.reduce((acc, cur) => acc + parseFloat(cur.bodyweight), 0);
       const avg = sum / week.records.length;
-      console.log(`Week ${weeks[i]} (from ${getLocalDateString(weekStart)} to ${getLocalDateString(weekEnd)}): Average = ${avg.toFixed(2)}`);
       
       const selectQuery = `
         SELECT * FROM UserBodyweightAverages 
@@ -445,7 +410,6 @@ function computeAndStoreWeeklyAverages(userId, callback) {
         }
           
         if (selectResults.length === 0) {
-          console.log(`No existing record for week starting ${getLocalDateString(weekStart)}. Inserting new record.`);
           const insertQuery = `
             INSERT INTO UserBodyweightAverages 
               (user_id, week_start_date, week_end_date, average_bodyweight) 
@@ -466,11 +430,9 @@ function computeAndStoreWeeklyAverages(userId, callback) {
               week_end_date: getLocalDateString(weekEnd),
               average_bodyweight: parseFloat(avg.toFixed(2))
             });
-            console.log(`Inserted weekly average for week starting ${getLocalDateString(weekStart)}`);
             processWeek(i + 1);
           });
         } else {
-          console.log(`Existing record found for week starting ${getLocalDateString(weekStart)}`);
           weeklyAverages.push({
             week_start_date: selectResults[0].week_start_date,
             week_end_date: selectResults[0].week_end_date,
@@ -502,7 +464,6 @@ app.get('/api/userBodyweightWeekly', (req, res) => {
       
     const { weeklyAverages, currentWeek } = resultObj;
     weeklyAverages.sort((a, b) => new Date(a.week_start_date) - new Date(b.week_start_date));
-    console.log('Returning weekly averages:', weeklyAverages, 'Current Week:', currentWeek);
     res.json({ weeklyAverages, currentWeek });
   });
 });
@@ -681,5 +642,138 @@ app.post('/upload-progress-photo', uploadPhoto.single('photo'), (req, res) => {
       return res.status(500).json({ success: false, message: "Error saving photo info" });
     }
     res.json({ success: true, photoPath: photoPath });
+  });
+});
+
+function parseSetData(setStr) {
+  console.log("Parsing set data:", setStr);
+  if (!setStr) return null;
+  const trimmed = setStr.trim();
+  if (trimmed === '-' || trimmed === '') return null;
+  
+  // Remove "kg" (case-insensitive) and split by '/'
+  const cleaned = trimmed.replace(/kg/gi, '');
+  const parts = cleaned.split('/');
+  if (parts.length < 2) return null;
+  
+  const reps = parseInt(parts[0].trim(), 10);
+  const weight = parseFloat(parts[1].trim());
+  if (isNaN(reps) || isNaN(weight)) return null;
+  
+  console.log("Parsed values:", { reps, weight });
+  return { reps, weight };
+}
+
+// ------------------
+// Backend Endpoint: /api/userExerciseWeekly
+// ------------------
+app.get('/api/userExerciseWeekly', (req, res) => {
+  const { userId, exercise } = req.query;
+  console.log(`Received request for userId: ${userId} and exercise: ${exercise}`);
+  
+  if (!userId || !exercise) {
+    console.error("Missing parameters:", { userId, exercise });
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Missing userId or exercise parameter.' 
+    });
+  }
+
+  // Normalize the exercise parameter.
+  // E.g. convert "bench_press" to "bench press"
+  const normalizedExercise = exercise.replace(/_/g, ' ').toLowerCase();
+  console.log("Normalized exercise to search for:", normalizedExercise);
+
+  // Query all progress records for this user, ordered by created_at
+  const query = "SELECT plan_json, created_at FROM UserProgress WHERE user_id = ? ORDER BY created_at ASC";
+  console.log("Executing query:", query, "with userId:", userId);
+  
+  con.query(query, [userId], (err, results) => {
+    if (err) {
+      console.error("Error fetching user progress:", err);
+      return res.status(500).json({ success: false, message: 'Database error.' });
+    }
+    
+    console.log(`Fetched ${results.length} records for user ${userId}`);
+    if (results.length === 0) {
+      return res.status(200).json({ averageReps: 0, averageWeight: 0 });
+    }
+
+    // Initialize totals for all matching records
+    let totalReps = 0, totalWeight = 0, totalSets = 0;
+
+    // Loop over each record
+    results.forEach(record => {
+      let plan;
+      try {
+        plan = JSON.parse(record.plan_json);
+      } catch(e) {
+        console.error("Error parsing plan_json:", e, "Skipping record.");
+        return; // skip this record
+      }
+      
+      if (!plan.headers || !Array.isArray(plan.headers)) {
+        console.warn("No valid headers found in plan_json", plan);
+        return;
+      }
+
+      // Find the index of the target exercise (normalized, case-insensitive match)
+      let exIndex = plan.headers.findIndex(h => h.toLowerCase() === normalizedExercise);
+      if (exIndex === -1) {
+        console.log(`Exercise "${normalizedExercise}" not found in headers:`, plan.headers);
+        return;  // Exercise not found in this record
+      }
+
+      if (!plan.rows || !Array.isArray(plan.rows)) return;
+      
+      plan.rows.forEach(row => {
+        if (!row.data || !Array.isArray(row.data)) return;
+        let setDataStr = row.data[exIndex];
+        // parseSetData is your helper that converts a string like "10/100kg" into an object { reps, weight }
+        const parsed = parseSetData(setDataStr);
+        if (parsed) {
+          totalReps += parsed.reps;
+          totalWeight += parsed.weight;
+          totalSets++;
+          console.log("Added set data:", parsed, "Total sets so far:", totalSets);
+        }
+      });
+    });
+
+    console.log("Totals computed for exercise:", { totalReps, totalWeight, totalSets });
+    if (totalSets === 0) {
+      console.warn("No valid set data found for the exercise.");
+      return res.status(200).json({ averageReps: 0, averageWeight: 0 });
+    }
+
+    let averageReps = totalReps / totalSets;
+    let averageWeight = totalWeight / totalSets;
+    console.log("Returning averages:", { averageReps, averageWeight });
+    return res.json({ averageReps, averageWeight });
+  });
+});
+
+// ← add this new route to your Express backend:
+app.get('/api/getWorkoutPlansByDate', (req, res) => {
+  const { user_id, date } = req.query;
+  if (!user_id || !date) {
+    return res.status(400).json({ success: false, message: 'Missing user_id or date' });
+  }
+
+  const sql = `
+    SELECT routine, day, plan_json
+    FROM WorkoutPlans
+    WHERE user_id = ? AND DATE(created_at) = ?
+    ORDER BY updated_at DESC
+  `;
+  con.query(sql, [user_id, date], (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'DB error' });
+
+    const plans = results.map(r => ({
+      routine:    r.routine,
+      day:        r.day,
+      plan_json:  JSON.parse(r.plan_json)
+    }));
+    res.json({ success: true, plans });
   });
 });

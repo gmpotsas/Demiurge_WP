@@ -54,13 +54,13 @@
           align-items: flex-start;
           padding:5px;
           flex-wrap: wrap;
-          margin-top: 60px;
-          margin-bottom: 210px;
+          margin-top: 150px;
+          margin-bottom: 380px;
       }
       .segment {
           width: 40%;
           margin: 10px;
-          padding: 25px;
+          padding: 18px;
           background-color: rgba(255, 255, 255, 0.15);
           border-radius: 30px;
           box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
@@ -98,7 +98,7 @@
       #coachTable {
           width: 100%;
           border-collapse: collapse;
-          border-radius: 20px; /* Adjust the value as desired */
+          border-radius: 50px; /* Adjust the value as desired */
           overflow: hidden;    /* Makes sure child elements do not overflow the rounded corners */
           border-collapse: separate;
       }
@@ -110,7 +110,7 @@
           text-align: center;
           vertical-align: middle;
           border: 0;
-          padding: 8px;
+          padding: 13px;
       }
       /* Coach table input styling update */
       #coachTable input {
@@ -120,12 +120,12 @@
           border: none;
           width: 100%;
           text-align: center;
-          border-radius: 6px;  /* New: smoother rectangular edges */
+          border-radius: 20px;  /* New: smoother rectangular edges */
       }
       #UserTable {
           width: 100%;
           border-collapse: collapse;
-          border-radius: 40px; /* Adjust the value as desired */
+          border-radius: 50px; /* Adjust the value as desired */
           overflow: hidden;    /* Makes sure child elements do not overflow the rounded corners */
           border-collapse: separate;
       }
@@ -137,7 +137,7 @@
           text-align: center;
           vertical-align: middle;
           border: 0;
-          padding: 8px;
+          padding: 13px;
       }
       /* Coach table input styling update */
       #UserTable input {
@@ -147,7 +147,7 @@
           border: none;
           width: 100%;
           text-align: center;
-          border-radius: 4px;  /* New: smoother rectangular edges */
+          border-radius: 20px;  /* New: smoother rectangular edges */
       }
       /* Small plus/minus buttons */
       .small-btn {
@@ -165,7 +165,7 @@
       .gnome-panel {
           background-color: rgba(255, 255, 255, 0.1);
           border-radius: 8px;
-          padding: 10px;
+          padding: 5px;
           color: #f1f1f1;
       }
       #gnomeNotifications .gnome-panel {
@@ -217,7 +217,7 @@
           background-color: #2c2c2c;
           border-radius: 20px;
           padding: 20px;
-          margin-bottom: 5px;
+          margin-bottom: 1px;
           flex-grow: 1;
           display: flex;
           flex-direction: column;
@@ -260,7 +260,7 @@
           justify-content: space-between;
           font-size: 0.85rem;
           margin-top: auto;
-          margin-bottom: 4px;
+          margin-bottom: 40px;
       }
       .toggle-switch {
           position: relative;
@@ -446,7 +446,10 @@
   color: #e0e0e0;
   font-weight: 500;
 }
-
+.offcanvas .progress-bar.bg-success {
+    background-color: #26a69a; /* Modern teal color matching the chart */
+    transition: width 1.5s ease-out;
+}
 /* Buttons inside the Offcanvas */
 .offcanvas .btn-primary {
   background-color: #0d6efd;
@@ -519,10 +522,10 @@
     max-width: 320px;         /* Optional: Limit with a fixed maximum width */
   }
 }
-.offcanvas .progress-bar.bg-success {
-  background-color: #26a69a; /* Modern teal color */
+.progress .progress-bar {
   transition: width 1.5s ease-out;
 }
+
 .day-cell.disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -549,10 +552,51 @@
 }
 @media (max-width: 576px) {
   .segments-container {
-    gap: 40px;  /* Adds a 20px gap between stacked segments */
+    gap: 80px;  /* Adds a 20px gap between stacked segments */
   }
 }
-
+#progressBars h8 {
+    display: block;
+    margin-bottom: 40px; /* Adjust the spacing as desired */
+}
+.progress-bar{
+  background-color: rgba(48, 177, 112, 0.5);
+}
+.pclass{
+  margin-bottom: 40px;
+}
+.in1{
+  border-radius: 20px;
+  background-color: #444;
+}
+.in2{
+  border-radius: 20px;
+  background-color: #444;
+  margin-bottom: 30px;
+}
+.f1{
+  border-radius: 30px;
+}
+.reviewgap{
+  margin-bottom: 30px;
+}
+.coachtablegap{
+  margin-bottom: 30px;
+  text-align: center;
+}
+.Dtitlegap{
+  text-align: center;
+}
+.pclass{
+  margin-bottom: 30px;
+  text-align: center;
+}
+.calendheaderclas{
+  text-align: center;
+}
+.textclass{
+  text-align: center;
+}
   </style>
 </head>
 
@@ -600,122 +644,87 @@
   <div class="main-content">
     <div class="container segments-container">
       <!-- Coach Workout Plan Segment -->
-      <div class="segment">
-        <h2>Demiurge's Workout Plan</h2>
-        <p>Select a routine and day to set up the workout plan.</p>
-        <div class="input-group mb-3">
-            <label class="input-group-text" for="routineSelect">Choose Routine:</label>
-            <select id="routineSelect" class="form-select">
-                <option value="Push Pull Legs" selected>Push Pull Legs</option>
-                <option value="Chest Back Legs Arms">Chest Back Legs Arms</option>
-                <option value="Full Body">Full Body</option>
-                <option value="Upper/Lower Split">Upper/Lower Split</option>
-            </select>
+      <div class="segment d-flex flex-wrap" style="align-items: stretch;">
+        <!-- Left Panel: Calendar Panel with Headline -->
+        <div class="left-panel flex-grow-1" id="gnomeCalendarPanel">
+          <div class="gnome-panel h-100 d-flex flex-column">
+            <!-- Moved Headline -->
+            <h2 class="calendheaderclas" id="progressTrackerTitle">User Progress Tracker</h2>
+            <p class="pclass">Select a Date From The Calendar, Review Your Workout Plan in Demiurge's Plan Panel and Start Tracking.</p>
+            <div class="calendar-header mb-3">
+              <div class="calendar-day-label" id="calDayLabel">Πέμπτη</div>
+              <div class="calendar-date-label" id="calDateLabel">Απριλίου 3 2025</div>
+            </div>
+            <div class="calendar-body flex-grow-1 d-flex flex-column">
+              <div class="month-year-label" id="calMonthYear">
+                <span>Απρίλιος</span>
+                <span>2025</span>
+              </div>
+              <div class="calendar-grid flex-grow-1" style="align-content: start;">
+                <!-- Calendar grid populated by script -->
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="input-group mb-3">
-            <label class="input-group-text" for="daySelect">Select Day:</label>
-            <select id="daySelect" class="form-select" onchange="handleDayChange()">
-            </select>
-        </div>
-        <div id="workoutPlanHeader" class="hidden">
-            <h4>Workout Plan for <span id="selectedDay"></span> Day</h4>
-            <p>Use the small buttons within the table header to add or remove columns and rows.</p>
-        </div>
-        <!-- Coach table now wrapped in a scrollable container -->
-        <div id="tableWrapper" class="scrollable-table-wrapper">
-          <table id="coachTable" class="table table-striped table-hover table-dark">
-              <thead>
-                  <tr id="tableHeader">
-                      <th scope="col">
-                          Set 
-                          <button onclick="addRow()" class="btn btn-link small-btn p-0">+</button>
-                          <button onclick="removeRow()" class="btn btn-link small-btn p-0">–</button>
-                      </th>
-                      <th scope="col">
-                          Exercise 1 
-                          <button onclick="addColumn()" class="btn btn-link small-btn p-0">+</button>
-                          <button onclick="removeColumn()" class="btn btn-link small-btn p-0">–</button>
-                      </th>
-                  </tr>
-              </thead>
-              <tbody id="tableBody">
-                  <tr>
-                      <td>Set 1</td>
-                      <td><input type="text" placeholder="Reps/Weight"></td>
-                  </tr>
-              </tbody>
-          </table>
-        </div>
-        <button type="button" class="btn btn-outline-light btn-md save-butt" onclick="saveWorkoutPlan()">
-          Save Plan
-        </button>
+      
+     
       </div>
       
 <!-- GNOME-Style User Progress Segment -->
-<div class="segment d-flex flex-wrap" style="align-items: stretch;">
-  <!-- Left Panel: Calendar Panel with Headline -->
-  <div class="left-panel flex-grow-1" id="gnomeCalendarPanel">
-    <div class="gnome-panel h-100 d-flex flex-column">
-      <!-- Moved Headline -->
-      <h2 id="progressTrackerTitle">User Progress Tracker</h2>
-      <div class="calendar-header mb-3">
-        <div class="calendar-day-label" id="calDayLabel">Πέμπτη</div>
-        <div class="calendar-date-label" id="calDateLabel">Απριλίου 3 2025</div>
-      </div>
-      <div class="calendar-body flex-grow-1 d-flex flex-column">
-        <div class="month-year-label" id="calMonthYear">
-          <span>Απρίλιος</span>
-          <span>2025</span>
-        </div>
-        <div class="calendar-grid flex-grow-1" style="align-content: start;">
-          <!-- Calendar grid populated by script -->
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Right Panel: Input Fields with Toggle Switch-->
-  <div class="right-panel" id="gnomeNotifications" style="border-left: 1px solid #555; width: 500px;">
-    <div class="gnome-panel h-100 d-flex flex-column">
-      <!-- Instructional text -->
-      <p>Plug in the day of the workout and your bodyweight and start tracking</p>
-      <div class="input-group mb-3">
-        <label class="input-group-text" for="inputGroupSelect01">Routine</label>
-        <select class="form-select" id="inputGroupSelect01">
-          <option value="Push Pull Legs">Push Pull Legs</option>
+<div class="segment">
+  <h2 class="Dtitlegap">Demiurge's Workout Plan.</h2>
+  <p class="pclass">Custom Workout Plan For Every Day of The Week.</p>
+  <div class="input-group mb-3 in1">
+      <label class="input-group-text" for="routineSelect">Routine</label>
+      <select id="routineSelect" class="form-select sel1">
+          <option value="Push Pull Legs" selected>Push Pull Legs</option>
           <option value="Chest Back Legs Arms">Chest Back Legs Arms</option>
           <option value="Full Body">Full Body</option>
           <option value="Upper/Lower Split">Upper/Lower Split</option>
-        </select>
-      </div>
-      
-      <div class="input-group mb-3">
-        <label class="input-group-text" for="inputGroupSelect02">Day</label>
-        <select class="form-select" id="inputGroupSelect02">
-          <option value="" selected>Choose...</option>
-          <option value="Rest" >Rest</option>  
-          <!-- Options will be inserted by setUserDayOptions() -->
-        </select>
-      </div>
-
-      <div class="input-group mb-3">
-        <label class="input-group-text" for="bodyweightInput">Kg</label>
-        <select class="form-select" id="bodyweightInput">
-          <!-- Options will be dynamically populated -->
-        </select>
-      </div>
-      
-      <!-- New Toggle Controls -->
-      <div class="d-flex justify-content-between align-items-center mt-auto">
-        <!-- Track Progress Toggle -->
-        <div class="d-flex align-items-center">
-          <span class="me-2">Track Workout</span>
-          <div class="toggle-switch">
-            <input type="checkbox" id="progressToggle">
-            <label for="progressToggle"></label>
-          </div>
-        </div>
-    
+      </select>
+  </div>
+  <div class="input-group mb-3 in2">
+      <label class="input-group-text" for="daySelect">Day</label>
+      <select id="daySelect" class="form-select sel2" onchange="handleDayChange()">
+      </select>
+  </div>
+  <div id="workoutPlanHeader" class="hidden">
+    <h4 class="textclass">Workout Plan for <span id="selectedDay"></span> Day</h4>
+  </div>
+  <!-- Coach table now wrapped in a scrollable container -->
+  <div id="tableWrapper" class="scrollable-table-wrapper">
+    <table id="coachTable" class="table table-striped table-hover table-dark">
+        <thead>
+            <tr id="tableHeader">
+                <th scope="col">
+                    Set 
+                    <button onclick="addRow()" class="btn btn-link small-btn p-0">+</button>
+                    <button onclick="removeRow()" class="btn btn-link small-btn p-0">–</button>
+                </th>
+                <th scope="col">
+                    Exercise 1 
+                    <button onclick="addColumn()" class="btn btn-link small-btn p-0">+</button>
+                    <button onclick="removeColumn()" class="btn btn-link small-btn p-0">–</button>
+                </th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <tr>
+                <td>Set 1</td>
+                <td><input type="text" placeholder="Reps/Weight"></td>
+            </tr>
+        </tbody>
+    </table>
+  </div>
+  <div class="d-flex justify-content-between align-items-center mt-3">
+    <button type="button" class="btn btn-outline-light btn-md save-butt" onclick="saveWorkoutPlan()">
+      Save Plan
+    </button>
+    <div class="d-flex align-items-center">
+      <span class="me-2">Track Workout</span>
+      <div class="toggle-switch">
+        <input type="checkbox" id="progressToggle">
+        <label for="progressToggle"></label>
       </div>
     </div>
   </div>
@@ -724,8 +733,8 @@
   </div>
 
 <!-- Modal: User Progress Table -->
-<div class="modal fade" id="progressModal" tabindex="-1" aria-labelledby="progressModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
+<div class="modal fade " id="progressModal" tabindex="-1" aria-labelledby="progressModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered f1">
     <div class="modal-content" style="border-radius: 30px;">
       <div class="modal-header">
         <h5 class="modal-title text-center w-100" id="progressModalLabel">User Progress Log</h5>
@@ -769,6 +778,12 @@
               </tr>
             </tbody>
           </table>
+        </div>
+        <div class="input-group mb-3">
+          <label class="input-group-text" for="modalBodyweightInput">Bodyweight (Kg)</label>
+          <select class="form-select" id="modalBodyweightInput">
+            <!-- will be populated 40.0→140.0 by JS -->
+          </select>
         </div>
       </div>
       <div class="modal-footer">
@@ -827,9 +842,9 @@
         <select class="form-select" id="exerciseGoal" disabled>
           <option value="" selected disabled>Select Exercise</option>
           <option value="bench_press">Bench Press</option>
-          <option value="squat">Squat</option>
-          <option value="deadlift">Deadlift</option>
-          <option value="overhead_press">Overhead Press</option>
+          <option value="Squat">Squat</option>
+          <option value="Deadlift">Deadlift</option>
+          <option value="Overhead_Press">Overhead Press</option>
           <option value="bicep_curl">Bicep Curl</option>
           <option value="triceps_extension">Triceps Extension</option>
           <option value="leg_press">Leg Press</option>
@@ -863,15 +878,16 @@
   <div class="mb-3">
     <label class="form-label">Exercise Progress (Bench Press)</label>
     <div class="progress">
-      <div class="progress-bar bg-info" role="progressbar" style="width: 50%;" 
+      <div class="progress-bar" role="progressbar" style="width: 50%;" 
            aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">50%</div>
     </div>
+    <canvas id="exerciseProgressChart" width="400" height="200"></canvas>
   </div>
   <div class="mb-3">
     <label class="form-label">Bodyweight Progress</label>
     <div class="progress">
-      <div class="progress-bar bg-success" role="progressbar" style="width: 30%;" 
-           aria-valuenow="30" aria-valuemin="0" aria-valuemax="100">30%</div>
+      <div class="progress-bar1" role="progressbar" style="width: 30%; background-color: #26a69a;" 
+           aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">30%</div>
     </div>
   </div>
   <!-- New Chart Canvas -->

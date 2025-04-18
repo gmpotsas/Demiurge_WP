@@ -3,11 +3,18 @@
 // ========================
 
 // Show the Bootstrap offcanvas for Stats and update the bodyweight progress.
-function showStatsOffcanvas() {
+async function showStatsOffcanvas() {
+  // First, fetch the latest goals and update the form.
+  await fetchUserGoals();
+  
+  // Then show the offcanvas.
   const offcanvasEl = document.getElementById('statsOffcanvas');
   const bsOffcanvas = new bootstrap.Offcanvas(offcanvasEl);
   bsOffcanvas.show();
+  
+  // Now that the goals are updated, update the progress calculations.
   updateBodyweightProgress();
+  updateExerciseProgress();
 }
 
 // Dummy function to get the logged-in user's ID.
@@ -152,10 +159,10 @@ async function updateBodyweightProgress() {
       if (bwLabel) {
         bwLabel.textContent = "Bodyweight Progress (Begin Tracking to see your progress)";
       }
-      const bodyweightProgressBar = document.querySelector('#progressBars .progress-bar.bg-success');
-      bodyweightProgressBar.style.width = "0%";
+      const bodyweightProgressBar = document.querySelector('#progressBars .progress-bar1');
+      bodyweightProgressBar.style.width = "";
       bodyweightProgressBar.setAttribute('aria-valuenow', 0);
-      bodyweightProgressBar.textContent = "0%";
+      bodyweightProgressBar.textContent = "";
 
       // Also remove any existing chart.
       if (bodyweightChartInstance) {
@@ -210,10 +217,10 @@ async function updateBodyweightProgress() {
     console.log(`Calculated progress: ${progress}%`);
 
     // Animate the progress bar: reset it to 0 then update to the new value.
-    const bodyweightProgressBar = document.querySelector('#progressBars .progress-bar.bg-success');
-    bodyweightProgressBar.style.width = "0%";
+    const bodyweightProgressBar = document.querySelector('#progressBars .progress-bar1');
+    bodyweightProgressBar.style.width = "";
     bodyweightProgressBar.setAttribute('aria-valuenow', 0);
-    bodyweightProgressBar.textContent = "0%";
+    bodyweightProgressBar.textContent = "";
     setTimeout(() => {
       bodyweightProgressBar.style.width = `${progress}%`;
       bodyweightProgressBar.setAttribute('aria-valuenow', progress);
@@ -304,5 +311,134 @@ async function updateFullBodyweightChart() {
     }
   } catch (error) {
     console.error("Error updating full bodyweight chart:", error);
+  }
+}
+
+// Helper function to format exercise names
+function formatExerciseName(exercise) {
+  // Split the string by underscores, capitalize each word, and join with a space.
+  return exercise
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+async function updateExerciseProgress() {
+  const userId = getUserID();
+  
+  // Retrieve the selected exercise and target weight.
+  const exercise = document.getElementById("exerciseGoal").value;
+  const formattedExercise = formatExerciseName(exercise);
+  const targetWeight = parseFloat(document.getElementById("weightGoal").value);
+  
+  if (!exercise || isNaN(targetWeight) || targetWeight <= 0) {
+    console.log("Invalid exercise or target weight.");
+    updateExerciseProgressBar(0);
+    updateExerciseProgressChart(formattedExercise, 0);
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/userExerciseWeekly?userId=${userId}&exercise=${encodeURIComponent(formattedExercise)}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch weekly exercise data.");
+    }
+    const data = await response.json();
+    const averageReps = parseInt(data.averageReps, 10);
+    const averageWeight = parseFloat(data.averageWeight);
+
+    if (isNaN(averageReps) || isNaN(averageWeight)) {
+      console.log("No valid exercise records found. Initializing progress to 0%.");
+      updateExerciseProgressBar(0);
+      updateExerciseProgressChart(formattedExercise, 0);
+      return;
+    }
+    
+    // Calculate estimated 1RM using Brzycki's formula.
+    const estimated1RM = averageWeight / (1.0278 - 0.0278 * averageReps);
+    let progress = 100-(targetWeight - estimated1RM);
+    progress = Math.min(Math.round(progress), 100);
+    // Update progress bar and chart.
+    updateExerciseProgressBar(progress);
+    updateExerciseProgressChart(formattedExercise, progress);
+    
+  } catch (error) {
+    console.error("Error updating exercise progress:", error);
+    updateExerciseProgressBar(0);
+    updateExerciseProgressChart(formattedExercise, 0);
+  }
+}
+
+function updateExerciseProgressBar(progress) {
+  const exerciseProgressBar = document.querySelector('#progressBars .progress-bar');
+  if (!exerciseProgressBar) {
+    console.error("Exercise progress bar element not found.");
+    return;
+  }
+  
+
+  
+  // Reset to 0 and animate update.
+  exerciseProgressBar.style.width = "0%";
+  exerciseProgressBar.setAttribute('aria-valuenow', 0);
+  exerciseProgressBar.textContent = "0%";
+  
+  setTimeout(() => {
+    exerciseProgressBar.style.width = `${progress}%`;
+    exerciseProgressBar.setAttribute('aria-valuenow', progress);
+    exerciseProgressBar.textContent = `${progress}%`;
+  }, 100);
+}
+
+
+// Global variable to hold the exercise progress chart instance.
+let exerciseProgressChartInstance = null;
+
+function updateExerciseProgressChart(formattedExercise, progress) {
+  const canvas = document.getElementById("exerciseProgressChart");
+  if (!canvas) {
+    console.error("Exercise progress chart canvas element not found.");
+    return;
+  }
+  const ctx = canvas.getContext('2d');
+
+  // If the chart already exists, update its data.
+  if (exerciseProgressChartInstance) {
+    exerciseProgressChartInstance.data.labels = [formattedExercise];
+    exerciseProgressChartInstance.data.datasets[0].data = [progress];
+    exerciseProgressChartInstance.update();
+  } else {
+    // Create a new bar chart.
+    exerciseProgressChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [formattedExercise], // x-axis labels
+        datasets: [{
+          label: 'Progress (%)',
+          data: [progress],
+          backgroundColor: 'rgba(48, 177, 112, 0.5)',  // semi-transparent teal
+          borderColor: 'rgba(48, 177, 112, 1)',         // full color border
+          borderWidth: 1
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100, // progress percentage max is 100%
+            title: {
+              display: true,
+              text: 'Percentage'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Exercise'
+            }
+          }
+        }
+      }
+    });
   }
 }

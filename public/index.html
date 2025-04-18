@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <base href="/"> <!-- Ensures relative URLs work consistently -->
     <title>Demiurge</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -29,8 +30,8 @@
             padding: 20px 0;
             background: black;
             width: 100%;
-            }
-            .top-title h1 {
+        }
+        .top-title h1 {
             color: white;
             font-size: 36px;
             font-weight: bold;
@@ -39,29 +40,34 @@
             text-shadow: 0px 4px 10px rgba(255, 255, 255, 0.2);
             transition: text-shadow 0.3s ease-in-out;
             margin-bottom: 20px;
-            }
-            .top-title h1:hover {
+        }
+        .top-title h1:hover {
             text-shadow: 0px 6px 15px rgba(255, 204, 0, 1);
-            }
-        .segments-container {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            height: 80vh;
-            padding: 20px;
         }
-        .segment {
-            width: 45%;
-            padding: 40px;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
-            text-align: center;
-            transition: transform 0.3s ease-in-out;
-        }
-        .segment:hover {
-            transform: scale(1.05);
-        }
+         /* Container for segments */
+      .segments-container {
+          display: flex;
+          justify-content: space-around;
+          align-items: flex-start;
+          padding:5px;
+          flex-wrap: wrap;
+          margin-top: 300px;
+          margin-bottom: 500px;
+      }
+      .segment {
+          width: 40%;
+          margin: 10px;
+          padding: 25px;
+          background-color: rgba(255, 255, 255, 0.15);
+          border-radius: 30px;
+          box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+          text-align: left;
+          transition: transform 0.3s ease-in-out;
+      }
+      
+      .segment:hover {
+          transform: scale(1.08);
+      }
         /* Modal Custom Styles */
         .custom-modal {
             background-color: #1c1c1c;
@@ -98,7 +104,7 @@
         <h2>Choose Your Locker</h2>
         <p>Select your personalized locker and access your fitness plans with ease.</p>
         <!-- Button to trigger modal -->
-        <button type="button" class="btn btn-custom" data-bs-toggle="modal" data-bs-target="#redirecttolockers">
+        <button type="button" class="btn btn-outline-light btn-md save-butt" data-bs-toggle="modal" data-bs-target="#redirecttolockers">
             Access Locker
         </button>
     </div>
@@ -108,8 +114,7 @@
     </div>
 </div>
 
-
-<!--Hiden modal-->
+<!-- Hidden modal -->
 <div class="modal fade" id="redirecttolockers" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content custom-modal">
@@ -125,7 +130,7 @@
         </div>
       </div>
     </div>
-  </div>
+</div>
 
 <footer class="footer mt-5 py-5" style="background-color: black; color: white;">
     <div class="container">
@@ -140,7 +145,8 @@
                     <li>✔ Custom Workout Plans</li>
                     <li>✔ Nutrition Guidance</li>
                     <li>✔ 1-on-1 Coaching</li>
-                    <li><button type="button" class="btn btn-custom" onclick="redirectToPage()">Go to Dashboard</button>
+                    <li>
+                        <button type="button" class="btn btn-custom" onclick="redirectToPage()">Go to Dashboard</button>
                     </li>
                 </ul>
             </div>
@@ -162,7 +168,7 @@
 
 <script>
     function redirectToPage() {
-        window.location.href = "adminspage.html"; // Change to your desired page
+        window.location.href = "adminspage.html"; // This will resolve based on your <base> href="/"
     }
 </script>
 <script type="application/javascript" src="jsfiles/gotolockers.js"></script>
