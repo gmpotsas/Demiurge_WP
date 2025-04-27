@@ -88,7 +88,7 @@ app.get('/api/getWorkoutPlan', (req, res) => {
                 // Parse plan_json before sending it back, and include updated_at in response
                 const plan = result[0];
                 plan.plan_json = JSON.parse(plan.plan_json);
-                return res.json({ success: true, plan, updated_at: plan.updated_at });
+                return res.json({ success: true, plan, updated_at: plan.updated_at ,day : plan.day});
             } else {
                 return res.json({ success: false, message: "No plan found" });
             }
@@ -171,7 +171,7 @@ app.get('/api/userprogress', (req, res) => {
     if (results.length > 0) {
       const row = results[0];
       const planData = row.plan_json ? JSON.parse(row.plan_json) : {};
-      res.json({ bodyweight: row.bodyweight, table: planData, day: row.day });
+      res.json({ table: planData, day: row.day });
     } else {
       res.status(404).json({ success: false, message: 'No records found for the specified day.' });
     }
@@ -180,8 +180,8 @@ app.get('/api/userprogress', (req, res) => {
   
 // POST endpoint to save or update user progress
 app.post('/api/userprogress', (req, res) => {
-    const { user_id, routine, day, bodyweight, date, table } = req.body;
-    if (!user_id || !routine || !day || !bodyweight || !date || !table) {
+    const { user_id, routine, day, date, table } = req.body;
+    if (!user_id || !routine || !day || !date || !table) {
       return res.status(400).json({ success: false, message: 'Missing required fields.' });
     }
     
@@ -203,8 +203,8 @@ app.post('/api/userprogress', (req, res) => {
     
         if (results.length > 0) {
           con.query(
-            "UPDATE UserProgress SET routine = ?, day = ?, bodyweight = ?, plan_json = ?, rest = ? WHERE user_id = ? AND DATE(created_at) = ?",
-            [routine, day, bodyweight, planJson, rest, user_id, formattedDate.split(' ')[0]],
+            "UPDATE UserProgress SET routine = ?, day = ?, plan_json = ?, rest = ? WHERE user_id = ? AND DATE(created_at) = ?",
+            [routine, day,  planJson, rest, user_id, formattedDate.split(' ')[0]],
             (err, result) => {
               if (err) {
                 console.error(err);
@@ -215,8 +215,8 @@ app.post('/api/userprogress', (req, res) => {
           );
         } else {
           con.query(
-            "INSERT INTO UserProgress (user_id, routine, day, bodyweight, plan_json, created_at, rest) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [user_id, routine, day, bodyweight, planJson, formattedDate, rest],
+            "INSERT INTO UserProgress (user_id, routine, day, plan_json, created_at, rest) VALUES (?, ?, ?, ?, ?, ?)",
+            [user_id, routine, day, planJson, formattedDate, rest],
             (err, result) => {
               if (err) {
                 console.error(err);
@@ -289,184 +289,172 @@ app.get('/api/userGoals', (req, res) => {
   
   // POST endpoint to save a new goal for a user
   app.post('/api/userGoals', (req, res) => {
-    const { user_id, exercise_goal, target_weight, target_reps, desired_bodyweight, goal_date } = req.body;
-    
-    // Basic validation (you can extend this as needed)
-    if (!user_id || !exercise_goal || !goal_date) {
-      return res.status(400).json({ success: false, message: 'Missing required fields.' });
+    // 👉 use snake_case to match the JSON your stats.js is sending:
+    const {
+      user_id,
+      exercise_goal,
+      target_weight,
+      target_reps,
+      desired_bodyweight
+    } = req.body;
+  
+    if (!user_id || desired_bodyweight == null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields.'
+      });
     }
-    
-    const query = `
+  
+    // 1) Insert the new goal
+    const insertSql = `
       INSERT INTO UserGoals 
-      (user_id, exercise_goal, target_weight, target_reps, desired_bodyweight, goal_date) 
-      VALUES (?, ?, ?, ?, ?, ?)
+        (user_id, exercise_goal, target_weight, target_reps, desired_bodyweight) 
+      VALUES (?, ?, ?, ?, ?)
     `;
-    
-    const queryParams = [user_id, exercise_goal, target_weight, target_reps, desired_bodyweight, goal_date];
-    
-    con.query(query, queryParams, (err, results) => {
+    con.query(
+      insertSql,
+      [user_id, exercise_goal, target_weight, target_reps, desired_bodyweight],
+      (err, result) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({
+            success: false,
+            message: 'DB error on inserting goal.'
+          });
+        }
+  
+        const newGoalId = result.insertId;
+  
+        // 2) Find most recent progress timestamp (to reset anchor_date)
+        const progSql = `
+          SELECT created_at 
+          FROM UserProgress 
+          WHERE user_id = ? 
+          ORDER BY created_at DESC 
+          LIMIT 1
+        `;
+        con.query(progSql, [user_id], (err2, progRows) => {
+          if (err2) {
+            console.error(err2);
+            // goal inserted, but anchor reset failed – still return success
+            return res.json({ success: true, goal_id: newGoalId });
+          }
+  
+          if (!progRows.length) {
+            // no progress yet → leave anchor_date NULL
+            return res.json({ success: true, goal_id: newGoalId });
+          }
+  
+          // 3) Update anchor_date on the newly inserted goal
+          const anchorDate = progRows[0].created_at;
+          const updateSql = `
+            UPDATE UserGoals 
+            SET anchor_date = ? 
+            WHERE goal_id = ?
+          `;
+          con.query(updateSql, [anchorDate, newGoalId], err3 => {
+            if (err3) console.error('Failed to update anchor_date:', err3);
+            return res.json({ success: true, goal_id: newGoalId });
+          });
+        });
+      }
+    );
+  });
+  
+
+
+
+app.get('/api/userBodyweightWeekly', (req, res) => {
+  const userId = req.query.userId;
+  if (!userId) {
+    return res.status(400).json({ success: false, message: 'Missing userId.' });
+  }
+
+  // Helper to bucket and average once we know anchorDate
+  function computeAndSend(anchorDate) {
+    const fetchSql = `
+      SELECT created_at, bodyweight 
+      FROM UserProgress 
+      WHERE user_id = ? 
+        AND created_at >= ? 
+      ORDER BY created_at ASC
+    `;
+    con.query(fetchSql, [userId, anchorDate], (err, rows) => {
       if (err) {
         console.error(err);
-        return res.status(500).json({ success: false, message: 'Database error.' });
+        return res.status(500).json({ success: false, message: 'DB error fetching progress.' });
       }
-      
-      // Respond with the inserted record's ID or a success message.
-      res.json({ success: true, message: 'Goal saved successfully.', goalId: results.insertId });
-    });
-  });
 
-  // Helper function to format a Date object as YYYY-MM-DD in local time.
-function getLocalDateString(date) {
-  const year = date.getFullYear();
-  const month = ('0' + (date.getMonth() + 1)).slice(-2);
-  const day = ('0' + date.getDate()).slice(-2);
-  return `${year}-${month}-${day}`;
-}
+      // bucket into weeks since anchorDate
+      const start = new Date(anchorDate).getTime();
+      const weekBuckets = {};
+      rows.forEach(r => {
+        const wk = Math.floor((new Date(r.created_at).getTime() - start) / (7*24*60*60*1000));
+        weekBuckets[wk] = weekBuckets[wk] || [];
+        weekBuckets[wk].push(r.bodyweight);
+      });
 
-function computeAndStoreWeeklyAverages(userId, callback) {
-  
-  
-  const getProgressQuery = `
-    SELECT bodyweight, created_at 
-    FROM UserProgress 
-    WHERE user_id = ?
-    ORDER BY created_at ASC
-  `;
-    
-  con.query(getProgressQuery, [userId], (err, progressResults) => {
-    if (err) {
-      console.error('Error fetching user progress:', err);
-      return callback(err);
-    }
-      
-    if (progressResults.length === 0) {
-      console.log('No progress records found for userId:', userId);
-      return callback(null, { weeklyAverages: [], currentWeek: null });
-    }
-      
-    const firstRecordTimestamp = progressResults[0].created_at;
-    const firstDate = new Date(firstRecordTimestamp);
-    if (isNaN(firstDate.getTime())) {
-      console.error(`Invalid date value received from created_at: ${firstRecordTimestamp}`);
-      return callback(new Error("Invalid date value in user progress records."));
-    }
-      
-    console.log(`First tracking date: ${getLocalDateString(firstDate)}`);
-      
-    // Group records by week.
-    let weekGroups = {};
-    progressResults.forEach(record => {
-      const recordDate = new Date(record.created_at);
-      if (isNaN(recordDate.getTime())) {
-        console.error("Invalid recordDate for record:", record);
-        return;
-      }
-      const diffDays = Math.floor((recordDate - firstDate) / (1000 * 60 * 60 * 24));
-      const weekIndex = Math.floor(diffDays / 7);
-
-      if (!weekGroups[weekIndex]) {
-        weekGroups[weekIndex] = {
-          week_start_date: new Date(firstDate.getTime() + weekIndex * 7 * 24 * 60 * 60 * 1000),
-          records: []
-        };
-      }
-      weekGroups[weekIndex].records.push(record);
-    });
-      
-  
-      
-    let weeks = Object.keys(weekGroups).sort((a, b) => a - b);
-    let weeklyAverages = [];
-      
-    const processWeek = (i) => {
-      if (i >= weeks.length) {
-        // Determine current week info.
-        let weekIndices = Object.keys(weekGroups).map(Number);
-        let maxWeekIndex = Math.max(...weekIndices);
-        let currentWeekCount = weekGroups[maxWeekIndex].records.length;
-        return callback(null, { weeklyAverages, currentWeek: { week_index: maxWeekIndex, count: currentWeekCount } });
-      }
-      
-      const week = weekGroups[weeks[i]];
-      const weekStart = new Date(week.week_start_date);
-      const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
-      
-      // Calculate average bodyweight for this week.
-      const sum = week.records.reduce((acc, cur) => acc + parseFloat(cur.bodyweight), 0);
-      const avg = sum / week.records.length;
-      
-      const selectQuery = `
-        SELECT * FROM UserBodyweightAverages 
-        WHERE user_id = ? AND week_start_date = ? AND week_end_date = ?
-      `;
-      con.query(selectQuery, [
-        userId,
-        getLocalDateString(weekStart),
-        getLocalDateString(weekEnd)
-      ], (err, selectResults) => {
-        if (err) {
-          console.error('Error checking existing weekly average:', err);
-          return callback(err);
-        }
-          
-        if (selectResults.length === 0) {
-          const insertQuery = `
-            INSERT INTO UserBodyweightAverages 
-              (user_id, week_start_date, week_end_date, average_bodyweight) 
-            VALUES (?, ?, ?, ?)
-          `;
-          con.query(insertQuery, [
-            userId,
-            getLocalDateString(weekStart),
-            getLocalDateString(weekEnd),
-            avg.toFixed(2)
-          ], (err, result) => {
-            if (err) {
-              console.error('Error inserting weekly average:', err);
-              return callback(err);
-            }
-            weeklyAverages.push({
-              week_start_date: getLocalDateString(weekStart),
-              week_end_date: getLocalDateString(weekEnd),
-              average_bodyweight: parseFloat(avg.toFixed(2))
-            });
-            processWeek(i + 1);
-          });
+      const weeklyAverages = [];
+      let currentWeek = null;
+      Object.keys(weekBuckets).map(Number).sort((a,b)=>a-b).forEach(wk => {
+        const vals = weekBuckets[wk];
+        if (vals.length >= 7) {
+          const avg = vals.reduce((sum, v) => sum + v, 0) / vals.length;
+          weeklyAverages.push({ week_index: wk, average_bodyweight: avg });
         } else {
-          weeklyAverages.push({
-            week_start_date: selectResults[0].week_start_date,
-            week_end_date: selectResults[0].week_end_date,
-            average_bodyweight: parseFloat(selectResults[0].average_bodyweight)
-          });
-          processWeek(i + 1);
+          currentWeek = { week_index: wk, count: vals.length };
         }
       });
-    };
-      
-    processWeek(0);
-  });
-}
-  
-// Endpoint to get weekly bodyweight averages along with current week info.
-app.get('/api/userBodyweightWeekly', (req, res) => {
-  const { userId } = req.query;
-  console.log(`GET /api/userBodyweightWeekly called for userId: ${userId}`);
-  if (!userId) {
-    console.error('Missing userId parameter.');
-    return res.status(400).json({ success: false, message: 'Missing userId parameter.' });
+
+      const startingBodyweight = rows.length ? rows[0].bodyweight : null;
+      return res.json({ startingBodyweight, weeklyAverages, currentWeek });
+    });
   }
-    
-  computeAndStoreWeeklyAverages(userId, (err, resultObj) => {
+
+  // 1) get the latest goal to find anchor_date
+  const goalSql = `
+    SELECT desired_bodyweight, anchor_date 
+    FROM UserGoals 
+    WHERE user_id = ? 
+    ORDER BY goal_date DESC, goal_id DESC 
+    LIMIT 1
+  `;
+  con.query(goalSql, [userId], (err, goalRows) => {
     if (err) {
-      console.error('Error computing weekly averages:', err);
-      return res.status(500).json({ success: false, message: 'Error computing weekly averages.' });
+      console.error(err);
+      return res.status(500).json({ success: false, message: 'DB error fetching goal.' });
     }
-      
-    const { weeklyAverages, currentWeek } = resultObj;
-    weeklyAverages.sort((a, b) => new Date(a.week_start_date) - new Date(b.week_start_date));
-    res.json({ weeklyAverages, currentWeek });
+
+    let anchorDate = goalRows[0] && goalRows[0].anchor_date;
+    if (anchorDate) {
+      return computeAndSend(anchorDate);
+    }
+
+    // 2) if no anchor_date, use the first-ever progress entry
+    const firstSql = `
+      SELECT created_at 
+      FROM UserProgress 
+      WHERE user_id = ? 
+      ORDER BY created_at ASC 
+      LIMIT 1
+    `;
+    con.query(firstSql, [userId], (err2, firstRows) => {
+      if (err2) {
+        console.error(err2);
+        return res.status(500).json({ success: false, message: 'DB error fetching first progress.' });
+      }
+      if (!firstRows.length) {
+        // no progress at all
+        return res.json({ startingBodyweight: null, weeklyAverages: [], currentWeek: null });
+      }
+      anchorDate = firstRows[0].created_at;
+      computeAndSend(anchorDate);
+    });
   });
 });
+
+
+
 
   // Set the storage engine for Multer
 const storage = multer.diskStorage({
@@ -776,4 +764,49 @@ app.get('/api/getWorkoutPlansByDate', (req, res) => {
     }));
     res.json({ success: true, plans });
   });
+});
+
+
+
+// POST /api/userprogress/bodyweight
+app.post('/api/userprogress/bodyweight', (req, res) => {
+  const { user_id, date, bodyweight } = req.body;
+  if (!user_id || !date || !bodyweight) {
+    return res.status(400).json({ success:false, message: 'Missing fields.' });
+  }
+
+  // Check if there’s already a record for that day:
+  con.query(
+    `SELECT * FROM UserProgress WHERE user_id=? AND DATE(created_at)=?`,
+    [user_id, date],
+    (err, results) => {
+      if (err) return res.status(500).json({ success:false, message:'DB error.' });
+
+      if (results.length) {
+        // UPDATE only bodyweight
+        con.query(
+          `UPDATE UserProgress
+             SET bodyweight=?
+           WHERE user_id=? AND DATE(created_at)=?`,
+          [bodyweight, user_id, date],
+          err => err
+            ? res.status(500).json({ success:false, message:'DB error.' })
+            : res.json({ success:true, message:'Bodyweight updated.' })
+        );
+      } else {
+        // INSERT a new row; you can leave plan_json NULL or empty JSON
+        con.query(
+          `INSERT INTO UserProgress
+             (user_id, created_at, bodyweight, plan_json, rest)
+           VALUES (?, ?, ?, ?, ?)`,
+          [user_id, `${date} 00:00:00`, bodyweight, JSON.stringify({}), false],
+          err => err
+            ? res.status(500).json({ success:false, message:'DB error.' })
+            : res.json({ success:true, message:'Bodyweight recorded.' })
+        );
+      }
+    }
+
+    
+  );
 });

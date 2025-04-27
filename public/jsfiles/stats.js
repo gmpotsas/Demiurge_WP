@@ -134,37 +134,31 @@ async function updateBodyweightProgress() {
   console.log(`updateBodyweightProgress() called for userId: ${userId}`);
 
   try {
+    // 1) fetch starting anchor + weekly data
     const response = await fetch(`/api/userBodyweightWeekly?userId=${userId}`);
-    console.log('Raw response from /api/userBodyweightWeekly:', response);
-
     if (!response.ok) {
-      throw new Error('Failed to fetch weekly bodyweight averages.');
+      throw new Error('Failed to fetch weekly bodyweight data.');
     }
+    const { startingBodyweight, weeklyAverages = [], currentWeek } = await response.json();
+    console.log('Backend returned →', { startingBodyweight, weeklyAverages, currentWeek });
 
-    const data = await response.json();
-    console.log('Data received from backend:', data);
-
-    const { weeklyAverages, currentWeek } = data;
-
-    // Locate the label element for "Bodyweight Progress"
-    let bwLabel;
+    // 2) find the “Bodyweight Progress” label
+    let bwLabel = null;
     document.querySelectorAll("label.form-label").forEach(label => {
       if (label.textContent.trim().startsWith("Bodyweight Progress")) {
         bwLabel = label;
       }
     });
 
-    // When there are no records, show the beginner message.
-    if ((!weeklyAverages || weeklyAverages.length === 0) && !currentWeek) {
+    // 3) no data at all?
+    if (startingBodyweight == null) {
       if (bwLabel) {
         bwLabel.textContent = "Bodyweight Progress (Begin Tracking to see your progress)";
       }
-      const bodyweightProgressBar = document.querySelector('#progressBars .progress-bar1');
-      bodyweightProgressBar.style.width = "";
-      bodyweightProgressBar.setAttribute('aria-valuenow', 0);
-      bodyweightProgressBar.textContent = "";
-
-      // Also remove any existing chart.
+      const bar = document.querySelector('#progressBars .progress-bar1');
+      bar.style.width = "";
+      bar.setAttribute('aria-valuenow', 0);
+      bar.textContent = "";
       if (bodyweightChartInstance) {
         bodyweightChartInstance.destroy();
         bodyweightChartInstance = null;
@@ -172,66 +166,58 @@ async function updateBodyweightProgress() {
       return;
     }
 
-    // Build the week/day text.
-    let weekText = "";
+    // 4) build “Week X / Day Y” or “W<N> Completed”
+    let weekText;
     if (currentWeek) {
-      const weekIndex = currentWeek.week_index; // Zero-based index.
-      const dayCount = currentWeek.count;         // Number of entries in the current week.
-      weekText = `Week: ${weekIndex + 1} / Day: ${dayCount} out of 7`;
-    } else if (weeklyAverages && weeklyAverages.length > 0) {
+      weekText = `Week: ${currentWeek.week_index + 1} / Day: ${currentWeek.count} out of 7`;
+    } else {
       weekText = `W${weeklyAverages.length} Completed`;
     }
-
     if (bwLabel) {
       bwLabel.textContent = `Bodyweight Progress (${weekText})`;
     }
 
-    // Determine starting and current weekly averages.
-    let startingBodyweight = (weeklyAverages && weeklyAverages.length > 0)
-      ? weeklyAverages[0].average_bodyweight
-      : null;
-    let currentWeeklyAverage = (weeklyAverages && weeklyAverages.length > 0)
+    // 5) figure out the “current” value to compare
+    //    last full-week average if we have one, otherwise the anchor
+    const lastAvg = weeklyAverages.length
       ? weeklyAverages[weeklyAverages.length - 1].average_bodyweight
       : startingBodyweight;
-    if (!startingBodyweight) startingBodyweight = currentWeeklyAverage;
+    console.log(`Anchor (start): ${startingBodyweight}, Most recent week-avg: ${lastAvg}`);
 
-    console.log(`Starting Bodyweight: ${startingBodyweight}, Current Weekly Average: ${currentWeeklyAverage}`);
-
+    // 6) read the target from the form
     const targetBodyweight = parseFloat(document.getElementById("bodyweightGoal").value);
-    console.log(`Target Bodyweight: ${targetBodyweight}`);
-
-    if (!startingBodyweight || !targetBodyweight || startingBodyweight === targetBodyweight) {
-      console.log('Invalid starting or target bodyweight. Aborting update.');
+    console.log(`Desired bodyweight target: ${targetBodyweight}`);
+    if (!targetBodyweight || targetBodyweight === startingBodyweight) {
+      console.log('Skipping progress bar (no valid target or no change from start).');
       return;
     }
 
-    let progress;
+    // 7) compute % toward that target
+    let progressPct;
     if (startingBodyweight > targetBodyweight) {
-      // For weight loss.
-      progress = ((startingBodyweight - currentWeeklyAverage) / (startingBodyweight - targetBodyweight)) * 100;
+      // weight-loss scenario
+      progressPct = ((startingBodyweight - lastAvg) / (startingBodyweight - targetBodyweight)) * 100;
     } else {
-      // For weight gain.
-      progress = ((currentWeeklyAverage - startingBodyweight) / (targetBodyweight - startingBodyweight)) * 100;
+      // weight-gain scenario
+      progressPct = ((lastAvg - startingBodyweight) / (targetBodyweight - startingBodyweight)) * 100;
     }
-    progress = Math.min(Math.round(progress), 100);
-    console.log(`Calculated progress: ${progress}%`);
+    progressPct = Math.min(Math.max(Math.round(progressPct), 0), 100);
+    console.log(`Calculated progress: ${progressPct}%`);
 
-    // Animate the progress bar: reset it to 0 then update to the new value.
-    const bodyweightProgressBar = document.querySelector('#progressBars .progress-bar1');
-    bodyweightProgressBar.style.width = "";
-    bodyweightProgressBar.setAttribute('aria-valuenow', 0);
-    bodyweightProgressBar.textContent = "";
+    // 8) animate the bar
+    const barEl = document.querySelector('#progressBars .progress-bar1');
+    barEl.style.width = "";
+    barEl.setAttribute('aria-valuenow', 0);
+    barEl.textContent = "";
     setTimeout(() => {
-      bodyweightProgressBar.style.width = `${progress}%`;
-      bodyweightProgressBar.setAttribute('aria-valuenow', progress);
-      bodyweightProgressBar.textContent = `${progress}%`;
-    }, 100); // Adjust delay as needed
+      barEl.style.width = `${progressPct}%`;
+      barEl.setAttribute('aria-valuenow', progressPct);
+      barEl.textContent = `${progressPct}%`;
+    }, 100);
 
-    console.log('Bodyweight progress bar updated with animation.');
-
-    // In addition to the weekly average chart, if there are more than 7 records,
-    // update the full bodyweight chart (plot every record).
+    // 9) refresh full record chart if you have >7 entries
     updateFullBodyweightChart();
+
   } catch (error) {
     console.error("Error updating bodyweight progress:", error);
   }
@@ -442,3 +428,5 @@ function updateExerciseProgressChart(formattedExercise, progress) {
     });
   }
 }
+
+// Ensure user has set a bodyweight goal before allowing any progress entry

@@ -62,84 +62,79 @@ function syncUserTableStructure() {
 }
 // --- Calendar Rendering Functions ---
 function renderCalendar(month, year) {
-  const calendarGrid = document.querySelector('.calendar-grid');
-  const calDayLabel = document.getElementById('calDayLabel');
+  const calendarGrid = document.querySelector('.cal-days');
+  const day = document.getElementById('daySelect')
+  const calDayLabel  = document.getElementById('calDayLabel');
   const calDateLabel = document.getElementById('calDateLabel');
-  const calMonthYear = document.getElementById('calMonthYear');
-  const today = new Date();
-  const dayNames = ["Κυριακή", "Δευτέρα", "Τρίτη", "Τετάρτη", "Πέμπτη", "Παρασκευή", "Σάββατο"];
+  const monthname = document.getElementById("calMonthName");
+  const today        = new Date();
+  const dayNames     = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
-  if (month === today.getMonth() && year === today.getFullYear()) {
-    calDayLabel.textContent = dayNames[today.getDay()];
-    calDateLabel.textContent = `${getMonthName(month)} ${today.getDate()} ${year}`;
-  } else {
-    const firstDay = new Date(year, month, 1);
-    calDayLabel.textContent = dayNames[firstDay.getDay()];
-    calDateLabel.textContent = `${getMonthName(month)} 1 ${year}`;
-  }
-  calMonthYear.innerHTML = `<span>${getMonthName(month)}</span><span>${year}</span>`;
+  // … month/year header code …
+ monthname.innerText = getMonthName(month)
 
   calendarGrid.innerHTML = "";
   const firstDayIndex = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInMonth   = new Date(year, month + 1, 0).getDate();
 
-  // Insert blank cells for days before the first of the month.
+  // blank slots
   for (let i = 0; i < firstDayIndex; i++) {
-    const blank = document.createElement('div');
-    blank.classList.add('day-cell', 'blank');
-    calendarGrid.appendChild(blank);
+    const blankBtn = document.createElement('button');
+    blankBtn.className = 'btn cal-btn';
+    blankBtn.disabled = true;
+    calendarGrid.appendChild(blankBtn);
   }
 
-  // Create day cells for each day in the month.
+  // day buttons
   for (let d = 1; d <= daysInMonth; d++) {
-    const dayCell = document.createElement('div');
-    dayCell.classList.add('day-cell');
-    dayCell.textContent = d;
+    const btn     = document.createElement('button');
+    btn.className = 'btn cal-btn';
+    btn.textContent = d;
+    const thisDate = new Date(year, month, d);
 
-    // Create a date object for the cell.
-    const cellDate = new Date(year, month, d);
+    if (thisDate > today) {
+      btn.disabled = true;
+    } else {
+      btn.addEventListener('click', () => {
+        // highlight selection
+        calendarGrid.querySelectorAll('.cal-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
 
-    // Mark today.
+        // update labels & global
+        selectedDate = thisDate;
+        calDayLabel.textContent  = dayNames[thisDate.getDay()];
+        calDateLabel.textContent = `${getMonthName(month)} ${d} ${year}`;
+
+        // load the user side
+        loadUserProgress();
+
+        // **fire the coach listener**
+        document.dispatchEvent(new CustomEvent('calendarDateChanged', {
+          detail: { selectedDate }
+        }));
+        
+      });
+    }
+
+    // mark “today”
     if (
       d === today.getDate() &&
       month === today.getMonth() &&
       year === today.getFullYear()
     ) {
-      dayCell.classList.add('today');
+      btn.classList.add('today','selected');
     }
 
-    // If the cell's date is in the future relative to today, disable selection.
-    if (cellDate > today) {
-      dayCell.classList.add('disabled');
-      dayCell.title = "Cannot select future dates";
-    } else {
-      // For current or past dates, add the click event.
-      dayCell.addEventListener('click', () => {
-        document.querySelectorAll('.calendar-grid .day-cell').forEach(c => c.classList.remove('selected'));
-        dayCell.classList.add('selected');
-        selectedDate = new Date(year, month, d);
-        calDayLabel.textContent = dayNames[selectedDate.getDay()];
-        calDateLabel.textContent = `${getMonthName(month)} ${d} ${year}`;
-        // Load the user progress for this date.
-        loadUserProgress();
-        document.dispatchEvent(new CustomEvent('calendarDateChanged', {
-          detail: { selectedDate }   // make the Date object available in case you need it
-        }));
-      });
-    }
-    calendarGrid.appendChild(dayCell);
+    calendarGrid.appendChild(btn);
   }
 }
 
 function getMonthName(idx) {
-  const months = [
-    "Ιανουάριος", "Φεβρουάριος", "Μάρτιος", "Απρίλιος",
-    "Μάιος", "Ιούνιος", "Ιούλιος", "Αύγουστος",
-    "Σεπτέμβριος", "Οκτώβριος", "Νοέμβριος", "Δεκέμβριος"
-  ];
-  return months[idx];
+  return [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ][idx];
 }
-
 // --- Left Panel: Set Day Dropdown Options Based on Routine ---
 function setUserDayOptions(routine) {
   const daySelect = document.getElementById('daySelect');
@@ -363,7 +358,6 @@ function resetUserProgressTable() {
 async function submitUserProgress() {
   const routine    = document.getElementById('routineSelect').value;
   const day        = document.getElementById('daySelect').value;
-  const bodyweight = document.getElementById('modalBodyweightInput').value;
     // new: build YYYY‑MM‑DD HH:mm:ss in local time
     const Y  = selectedDate.getFullYear();
     const M  = String(selectedDate.getMonth()+1).padStart(2,'0');
@@ -397,15 +391,14 @@ async function submitUserProgress() {
       tableData.rows.push({ set: setLabel, data });
     });
 
-  if (!routine || !day || !bodyweight) {
-    return alert("Routine, day and bodyweight are all required.");
+  if (!routine || !day ) {
+    return alert("Routine, day are all required.");
   }
 
   const payload = {
     user_id:    user_id,
     routine:    routine,
     day:        day,
-    bodyweight: bodyweight,
     date:       ts,
     table:      tableData
   };
@@ -450,11 +443,7 @@ async function loadUserProgress() {
     if (!resp.ok) return;
 
     const data = await resp.json();
-    // 3) If we got a bodyweight, populate that dropdown
-    if (data.bodyweight != null) {
-      document.getElementById('modalBodyweightInput').value =
-        parseFloat(data.bodyweight).toFixed(1);
-    }
+ 
     // 4) If we got a saved table, rebuild it
     if (data.table) {
       populateUserProgressTable(data.table);
@@ -506,9 +495,6 @@ document.getElementById('progressToggle').addEventListener('change', async funct
 
 // --- Initialization on DOMContentLoaded ---
 async function initPage() {
-  // 1) Populate the modal bodyweight dropdown
-  populateBodyweightDropdown();
-
 
   // 3) Copy coach → user routine & day options
   const coachRoutineEl   = document.getElementById('routineSelect');
@@ -550,17 +536,7 @@ window.addEventListener('load', () => {
   }, { once: true });
 });
 
-// Replace your old populateBodyweightDropdown() with this:
-function populateBodyweightDropdown() {
-  const select = document.getElementById('modalBodyweightInput');
-  select.innerHTML = '';
-  for (let w = 40.0; w <= 140.0; w += 0.1) {
-    const opt = document.createElement('option');
-    opt.value = w.toFixed(1);
-    opt.textContent = w.toFixed(1);
-    select.appendChild(opt);
-  }
-}
+
 
 const progressModalEl = document.getElementById('progressModal');
 if (progressModalEl) {
@@ -595,11 +571,9 @@ async function updateProgressModalTitle() {
     
     // Get the selected day from the dropdown.
     const daySelected    = document.getElementById('daySelect').value           || "Unknown day";
-    // Get the bodyweight from the dropdown.
-    const bodyweight     = document.getElementById('modalBodyweightInput').value || "Unknown weight";
     
     // Compose the new modal title.
-    const modalTitle = `${userName}'s Workout Log for ${daySelected} day Weighing at ${bodyweight}kg`;
+    const modalTitle = `${userName}'s Workout Log for ${daySelected} day.`;
     console.log("New modal title:", modalTitle);
     
     // Update the modal title element (assumed to have id "progressModalLabel").
@@ -633,4 +607,110 @@ async function updateLeftColumnTitle() {
     console.error("Error updating left column title:", error);
   }
 }
+
+
+
+// 1) format "1st of April"
+function formatDateWithSuffix(d) {
+  const day = d.getDate();
+  const monthNames = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ];
+  let suffix = "th";
+  if (day % 10 === 1 && day !== 11) suffix = "st";
+  else if (day % 10 === 2 && day !== 12) suffix = "nd";
+  else if (day % 10 === 3 && day !== 13) suffix = "rd";
+  return `${day}${suffix} of ${monthNames[d.getMonth()]}`;
+}
+
+// 2) show & populate modal when sticky btn clicked
+document
+  .getElementById('openBodyweightModal')
+  .addEventListener('click', async (e) => {
+    e.preventDefault();
+
+    // 1) check for an existing bodyweight goal
+    const userId = getUserID();
+    try {
+      const resp = await fetch(`/api/userGoals?userId=${userId}`);
+      if (!resp.ok) throw new Error('Network response was not ok');
+      const data = await resp.json();
+
+      if (!data.goal) {
+        // no goal → block modal and alert
+        return alert('⚠️ Please set a bodyweight goal first under “Goals & Stats.”');
+      }
+    } catch (err) {
+      console.error('Error verifying goal:', err);
+      return alert('Unable to verify your goal. Please try again later.');
+    }
+
+    // 2) at this point, a goal exists → proceed to populate & open the modal
+    const title = `Track your bodyweight for ${formatDateWithSuffix(selectedDate)}`;
+    document.getElementById('bodyweightModalLabel').textContent = title;
+
+    const sel = document.getElementById('bodyweightSelect');
+    sel.innerHTML = '';
+    for (let w = 40.0; w <= 140.0; w += 0.1) {
+      const opt = document.createElement('option');
+      opt.value = w.toFixed(1);
+      opt.textContent = w.toFixed(1);
+      sel.appendChild(opt);
+    }
+
+    new bootstrap.Modal(document.getElementById('bodyweightModal')).show();
+  });
+
+// 3) when toggle flipped, POST to backend
+document.getElementById('bodyweightToggle')
+  .addEventListener('change', async e => {
+    if (!e.target.checked) return;
+    const weight = document.getElementById('bodyweightSelect').value;
+    const Y = selectedDate.getFullYear();
+    const M = String(selectedDate.getMonth()+1).padStart(2,'0');
+    const D = String(selectedDate.getDate()).padStart(2,'0');
+    const date = `${Y}-${M}-${D}`;
+
+    const payload = {
+      user_id,       // from your global
+      date,          // YYYY‑MM‑DD
+      bodyweight:    weight
+    };
+
+    try {
+      await fetch('/api/userprogress/bodyweight', {
+        method:  'POST',
+        headers: {'Content-Type':'application/json'},
+        body:    JSON.stringify(payload)
+      });
+      // close modal & reset toggle
+      const modalEl = document.getElementById('bodyweightModal');
+      bootstrap.Modal.getInstance(modalEl).hide();
+      e.target.checked = false;
+      alert('Bodyweight saved!');
+    } catch(err) {
+      console.error(err);
+      alert('Error saving bodyweight.');
+      e.target.checked = false;
+    }
+  });
+
+  // wire up Prev/Next
+document.getElementById('prevMonth').addEventListener('click', () => {
+  currentMonth--;
+  if (currentMonth < 0) {
+    currentMonth = 11;
+    currentYear--;
+  }
+  renderCalendar(currentMonth, currentYear);
+});
+document.getElementById('nextMonth').addEventListener('click', () => {
+  currentMonth++;
+  if (currentMonth > 11) {
+    currentMonth = 0;
+    currentYear++;
+  }
+  renderCalendar(currentMonth, currentYear);
+});
 

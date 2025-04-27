@@ -114,6 +114,7 @@
     .modal-content {
       background-color: #1a1a1a;
     }
+    
     /* Responsive Locker Grid */
 @media (max-width: 1200px) {
   .locker-grid {
@@ -161,6 +162,9 @@
   }
   .modal-content {
     width: 100%;
+  
+    border-radius: 40px;
+
   }
 }
 #loadingOverlay {
@@ -189,6 +193,20 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+.f1{
+border-radius: 20px;
+}
+.f2{
+  border-radius: 20px;
+}
+.b1{
+  border-radius: 20px;
+}
+.m1{
+  border-radius: 40px;
+  padding: 10px;
+  padding-bottom: 15px;
+}
 
   </style>
 </head>
@@ -208,7 +226,7 @@
   <!-- Modal for entering credentials -->
   <div class="modal fade modal" id="credentialModal" tabindex="-1" aria-labelledby="credentialModalLabel" aria-hidden="true" >
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content bg-dark text-white" style="border-radius: 30px;">
+      <div class="modal-content bg-dark text-white m1">
         <div class="modal-header border-0">
           <h5 class="modal-title" id="credentialModalLabel">Enter Credentials</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -217,15 +235,15 @@
           <form id="credentialForm">
             <div class="mb-3">
               <label for="userId" class="form-label">User ID</label>
-              <input type="text" class="form-control" id="userId" required>
+              <input type="text" class="form-control f1" id="userId" required>
             </div>
             <div class="mb-3">
               <label for="password" class="form-label">3-Digit Password</label>
-              <input type="password" class="form-control" id="password" pattern="\d{3}" maxlength="3" required>
+              <input type="password" class="form-control f2" id="password" pattern="\d{3}" maxlength="3" required>
             </div>
             <input type="hidden" id="selectedLocker" value="">
             <!-- Changed button class to btn-secondary for a gray color -->
-            <button type="submit" class="btn btn-secondary w-100">Submit</button>
+            <button type="submit" class="btn btn-secondary w-100 b1">Submit</button>
           </form>
         </div>
       </div>
